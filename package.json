@@ -6,7 +6,7 @@
     "dev": "next dev",
     "postinstall": "prisma generate",
     "build": "next build",
-    "vercel-build": "prisma generate && prisma db push && next build",
+    "vercel-build": "prisma generate && (if [ -n \"$DATABASE_URL\" ] || [ -n \"$POSTGRES_PRISMA_URL\" ] || [ -n \"$POSTGRES_URL\" ]; then prisma db push; else echo 'Skipping prisma db push (missing DATABASE_URL/POSTGRES_PRISMA_URL/POSTGRES_URL)'; fi) && next build",
     "start": "next start",
     "lint": "eslint",
     "seed": "tsx prisma/seed.ts"

@@ -45,6 +45,8 @@ If you want a local Postgres instance, use the included docker-compose and point
 
 This repo includes a `vercel-build` script that runs `prisma migrate deploy` during build.
 
+Note: `vercel-build` will run `prisma db push` only if one of `DATABASE_URL`, `POSTGRES_PRISMA_URL`, or `POSTGRES_URL` is present; otherwise it will skip the DB step and still build.
+
 ## Repo layout
 
 - app/: Next.js app routes
