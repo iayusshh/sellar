@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { formatMoney } from "@/lib/money";
 import { SignOutButton } from "@/components/SignOutButton";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminDashboard() {
   const session = await getSession();
 

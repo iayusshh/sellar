@@ -11,6 +11,8 @@ import {
 } from "@/app/creator/actions";
 import { SignOutButton } from "@/components/SignOutButton";
 
+export const dynamic = "force-dynamic";
+
 export default async function CreatorDashboard() {
   const session = await getSession();
 

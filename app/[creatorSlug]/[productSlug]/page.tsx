@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
+export const dynamic = "force-dynamic";
 import { formatMoney } from "@/lib/money";
 
 export default async function ProductPage({
