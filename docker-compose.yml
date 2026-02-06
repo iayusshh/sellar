@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:16
+    container_name: sellar_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sellar
+      POSTGRES_PASSWORD: sellar
+      POSTGRES_DB: sellar
+    ports:
+      - "5432:5432"
+    volumes:
+      - sellar_pgdata:/var/lib/postgresql/data
+
+volumes:
+  sellar_pgdata:
