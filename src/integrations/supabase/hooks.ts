@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { authQueries, userQueries, walletQueries, productQueries, transactionQueries, adminQueries } from './queries';
+import { authQueries, userQueries, walletQueries, productQueries, transactionQueries, adminQueries, purchaseQueries } from './queries';
 
 // Auth hooks
 export const useSignUp = () => {
@@ -187,6 +187,16 @@ export const useAdminData = () => {
   });
 };
 
+export const useRemoveCreator = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (creatorId: string) => userQueries.removeCreator(creatorId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin'] });
+    },
+  });
+};
+
 export const useCreateProduct = () => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -215,5 +225,26 @@ export const useDeleteProduct = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
     },
+  });
+};
+
+// Purchase hooks
+export const usePurchaseProduct = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ productId, buyerName, buyerEmail }: { productId: string; buyerName: string; buyerEmail: string }) =>
+      purchaseQueries.purchaseProduct(productId, buyerName, buyerEmail),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-purchases'] });
+      queryClient.invalidateQueries({ queryKey: ['wallet'] });
+      queryClient.invalidateQueries({ queryKey: ['admin'] });
+    },
+  });
+};
+
+export const useMyPurchases = () => {
+  return useQuery({
+    queryKey: ['my-purchases'],
+    queryFn: purchaseQueries.getMyPurchases,
   });
 };

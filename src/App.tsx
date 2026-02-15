@@ -16,6 +16,7 @@ import Products from '@/pages/creator/Products';
 import Wallet from '@/pages/creator/Wallet';
 import Storefront from '@/pages/creator/Storefront';
 import Settings from '@/pages/creator/Settings';
+import Library from '@/pages/Library';
 
 import AdminPortal from '@/pages/admin/Portal';
 import OwnerPortal from '@/pages/admin/OwnerPortal';
@@ -65,6 +66,15 @@ function App() {
             <CreatorRoute>
               <Settings />
             </CreatorRoute>
+          }
+        />
+
+        <Route
+          path="/library"
+          element={
+            <ProtectedRoute>
+              <Library />
+            </ProtectedRoute>
           }
         />
 

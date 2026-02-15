@@ -3,6 +3,7 @@ import Footer from '@/components/layout/Footer';
 import Hero from '@/components/landing/Hero';
 import Features from '@/components/landing/Features';
 import WalletPreview from '@/components/landing/WalletPreview';
+import FeatureShowcase from '@/components/landing/FeatureShowcase';
 import CTA from '@/components/landing/CTA';
 
 export default function Index() {
@@ -13,6 +14,7 @@ export default function Index() {
         <Hero />
         <Features />
         <WalletPreview />
+        <FeatureShowcase />
         <CTA />
       </main>
       <Footer />

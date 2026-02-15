@@ -7,7 +7,7 @@ export default function Hero() {
     <section className="relative pt-32 pb-20 overflow-hidden">
       {/* Background Gradient */}
       <div className="absolute inset-0 gradient-hero opacity-10"></div>
-      
+
       <div className="container mx-auto px-4 relative z-10">
         <div className="max-w-4xl mx-auto text-center animate-fade-in">
           {/* Badge */}
@@ -24,7 +24,7 @@ export default function Hero() {
 
           {/* Subheadline */}
           <p className="text-xl md:text-2xl text-muted-foreground mb-10 max-w-2xl mx-auto animate-slide-up" style={{ animationDelay: '0.1s' }}>
-            Manage your digital wallet, showcase your storefront, and track earnings 
+            Manage your digital wallet, showcase your storefront, and track earnings
             all in one powerful platform built for creators.
           </p>
 
@@ -36,10 +36,16 @@ export default function Hero() {
                 <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Link>
             </Button>
-            <Button size="lg" variant="outline" asChild>
-              <Link to="/creator/dashboard">
-                View Demo Dashboard
-              </Link>
+            <Button
+              size="lg"
+              variant="outline"
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('showcase-tab', { detail: 'dashboard' }));
+                const el = document.getElementById('feature-showcase');
+                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
+            >
+              View Demo Dashboard
             </Button>
           </div>
 

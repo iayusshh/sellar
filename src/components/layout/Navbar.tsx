@@ -1,7 +1,7 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Wallet, Menu, X, LogOut } from 'lucide-react';
-import { useState } from 'react';
+import { Wallet, Menu, X, LogOut, BookOpen } from 'lucide-react';
+import { useState, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/integrations/supabase/hooks';
 
@@ -10,6 +10,25 @@ export default function Navbar() {
   const { user, signOut } = useAuth();
   const profileQuery = useProfile(user?.id ?? '');
   const isAdmin = !!profileQuery.data?.data?.is_admin;
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const scrollToShowcase = useCallback((tab: string) => {
+    const doScroll = () => {
+      window.dispatchEvent(new CustomEvent('showcase-tab', { detail: tab }));
+      const el = document.getElementById('feature-showcase');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    };
+
+    if (location.pathname === '/') {
+      doScroll();
+    } else {
+      navigate('/', { state: { showcaseTab: tab } });
+      setTimeout(doScroll, 300);
+    }
+  }, [location.pathname, navigate]);
 
   return (
     <nav className="fixed top-0 w-full bg-background/80 backdrop-blur-md border-b z-50">
@@ -26,15 +45,24 @@ export default function Navbar() {
             <Link to="/" className="text-sm font-medium hover:text-accent transition-colors">
               Home
             </Link>
-            <Link to="/creator/dashboard" className="text-sm font-medium hover:text-accent transition-colors">
+            <button
+              onClick={() => scrollToShowcase('dashboard')}
+              className="text-sm font-medium hover:text-accent transition-colors"
+            >
               Dashboard
-            </Link>
-            <Link to="/creator/products" className="text-sm font-medium hover:text-accent transition-colors">
-              Products
-            </Link>
-            <Link to="/creator/wallet" className="text-sm font-medium hover:text-accent transition-colors">
+            </button>
+            <button
+              onClick={() => scrollToShowcase('wallet')}
+              className="text-sm font-medium hover:text-accent transition-colors"
+            >
               Wallet
-            </Link>
+            </button>
+            <button
+              onClick={() => scrollToShowcase('products')}
+              className="text-sm font-medium hover:text-accent transition-colors"
+            >
+              Products
+            </button>
             {isAdmin ? (
               <Link to="/admin/portal" className="text-sm font-medium hover:text-accent transition-colors">
                 Admin
@@ -46,6 +74,9 @@ export default function Navbar() {
           <div className="hidden md:flex items-center gap-3">
             {user ? (
               <>
+                <Link to="/library" className="text-sm font-medium hover:text-accent transition-colors">
+                  My Library
+                </Link>
                 <span className="text-sm text-muted-foreground">
                   {user.email}
                 </span>
@@ -87,27 +118,24 @@ export default function Navbar() {
               >
                 Home
               </Link>
-              <Link
-                to="/creator/dashboard"
-                className="text-sm font-medium hover:text-accent transition-colors"
-                onClick={() => setIsOpen(false)}
+              <button
+                className="text-sm font-medium hover:text-accent transition-colors text-left"
+                onClick={() => { scrollToShowcase('dashboard'); setIsOpen(false); }}
               >
                 Dashboard
-              </Link>
-              <Link
-                to="/creator/products"
-                className="text-sm font-medium hover:text-accent transition-colors"
-                onClick={() => setIsOpen(false)}
-              >
-                Products
-              </Link>
-              <Link
-                to="/creator/wallet"
-                className="text-sm font-medium hover:text-accent transition-colors"
-                onClick={() => setIsOpen(false)}
+              </button>
+              <button
+                className="text-sm font-medium hover:text-accent transition-colors text-left"
+                onClick={() => { scrollToShowcase('wallet'); setIsOpen(false); }}
               >
                 Wallet
-              </Link>
+              </button>
+              <button
+                className="text-sm font-medium hover:text-accent transition-colors text-left"
+                onClick={() => { scrollToShowcase('products'); setIsOpen(false); }}
+              >
+                Products
+              </button>
               {isAdmin ? (
                 <Link
                   to="/admin/portal"
@@ -120,6 +148,14 @@ export default function Navbar() {
               <div className="flex flex-col gap-2 pt-4 border-t">
                 {user ? (
                   <>
+                    <Link
+                      to="/library"
+                      className="text-sm font-medium hover:text-accent transition-colors"
+                      onClick={() => setIsOpen(false)}
+                    >
+                      <BookOpen className="w-4 h-4 inline mr-2" />
+                      My Library
+                    </Link>
                     <div className="text-sm text-muted-foreground px-4 py-2">
                       {user.email}
                     </div>

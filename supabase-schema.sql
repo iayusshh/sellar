@@ -62,6 +62,7 @@ CREATE TABLE products (
   price NUMERIC(12, 2) NOT NULL,
   currency TEXT DEFAULT 'INR' NOT NULL,
   image_url TEXT,
+  content_url TEXT,
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -87,6 +88,7 @@ CREATE TABLE purchases (
   amount NUMERIC(12, 2) NOT NULL,
   currency TEXT DEFAULT 'INR' NOT NULL,
   status TEXT DEFAULT 'completed' CHECK (status IN ('pending', 'completed', 'failed')),
+  buyer_id UUID,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -234,6 +236,40 @@ BEGIN
     WHERE pu.product_id = target_product_id
     ORDER BY pu.created_at DESC;
 END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Admin RPC to remove a creator and all associated data
+CREATE OR REPLACE FUNCTION admin_remove_creator(target_creator_id UUID)
+RETURNS VOID AS $$
+DECLARE
+  is_caller_admin BOOLEAN;
+  is_target_admin BOOLEAN;
+BEGIN
+  -- Check caller is admin
+  SELECT (is_admin = true OR is_owner = true) INTO is_caller_admin
+    FROM users WHERE id = auth.uid();
+  IF NOT is_caller_admin THEN
+    RAISE EXCEPTION 'Permission denied: only admins can remove creators';
+  END IF;
+
+  -- Prevent removing admin/owner accounts
+  SELECT (is_admin = true OR is_owner = true) INTO is_target_admin
+    FROM users WHERE id = target_creator_id;
+  IF is_target_admin THEN
+    RAISE EXCEPTION 'Cannot remove admin or owner accounts';
+  END IF;
+
+  -- Delete in dependency order
+  DELETE FROM purchases WHERE creator_id = target_creator_id;
+  DELETE FROM products WHERE creator_id = target_creator_id;
+  DELETE FROM clients WHERE creator_id = target_creator_id;
+  DELETE FROM transactions WHERE wallet_id IN (
+    SELECT id FROM wallets WHERE user_id = target_creator_id
+  );
+  DELETE FROM wallets WHERE user_id = target_creator_id;
+  DELETE FROM users WHERE id = target_creator_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Create indexes for better performance
 CREATE INDEX idx_wallets_user_id ON wallets(user_id);
@@ -337,7 +373,8 @@ CREATE POLICY "Anyone can view active products" ON products
   FOR SELECT USING (is_active = true);
 
 CREATE POLICY "Users can manage their own products" ON products
-  FOR ALL USING (auth.uid() = creator_id);
+  FOR ALL USING (auth.uid() = creator_id)
+  WITH CHECK (auth.uid() = creator_id);
 
 CREATE POLICY "Admins can view all products" ON products
   FOR SELECT USING (
@@ -428,6 +465,34 @@ SELECT
   'Digital Product Sale',
   'completed'
 FROM wallets w WHERE w.user_id = 'YOUR_USER_ID_HERE';
+```
+
+## Storage Buckets
+
+Run these in the SQL Editor to set up storage buckets for image uploads:
+
+```sql
+-- Create 'products' bucket for product thumbnail images
+INSERT INTO storage.buckets (id, name, public) VALUES ('products', 'products', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Allow authenticated users to upload to their own folder
+CREATE POLICY "Authenticated users can upload product images"
+ON storage.objects FOR INSERT
+TO authenticated
+WITH CHECK (bucket_id = 'products' AND (storage.foldername(name))[1] = auth.uid()::text);
+
+-- Allow anyone to view product images (public bucket)
+CREATE POLICY "Public read access for product images"
+ON storage.objects FOR SELECT
+TO public
+USING (bucket_id = 'products');
+
+-- Allow users to update/delete their own images
+CREATE POLICY "Users can manage own product images"
+ON storage.objects FOR DELETE
+TO authenticated
+USING (bucket_id = 'products' AND (storage.foldername(name))[1] = auth.uid()::text);
 ```
 
 ## Notes

@@ -1,4 +1,4 @@
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
@@ -16,10 +16,13 @@ import {
   Check,
   Mail,
   ExternalLink,
+  X,
 } from 'lucide-react';
-import { useProfileByHandle, usePublicProducts } from '@/integrations/supabase/hooks';
+import { useProfileByHandle, usePublicProducts, usePurchaseProduct } from '@/integrations/supabase/hooks';
+import { useAuth } from '@/hooks/useAuth';
 import { formatCurrency } from '@/lib/currency';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 // X (Twitter) icon
 const XIcon = ({ className }: { className?: string }) => (
@@ -30,11 +33,15 @@ const XIcon = ({ className }: { className?: string }) => (
 
 export default function Storefront() {
   const { handle } = useParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const profileQuery = useProfileByHandle(handle ?? '');
   const profile = profileQuery.data?.data;
   const productsQuery = usePublicProducts(profile?.id ?? '');
   const products = productsQuery.data?.data ?? [];
   const [copied, setCopied] = useState(false);
+  const [buyingProduct, setBuyingProduct] = useState<any>(null);
+  const purchaseProduct = usePurchaseProduct();
 
   const socialLinks = (profile?.social_links as Record<string, string>) || {};
 
@@ -42,6 +49,32 @@ export default function Storefront() {
     navigator.clipboard.writeText(window.location.href);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleBuyNow = (product: any) => {
+    if (!user) {
+      toast.error('Please sign in to purchase.');
+      navigate(`/auth/signin?redirect=/${handle}`);
+      return;
+    }
+    setBuyingProduct(product);
+  };
+
+  const handleConfirmPurchase = async () => {
+    if (!buyingProduct || !user) return;
+    try {
+      const { error } = await purchaseProduct.mutateAsync({
+        productId: buyingProduct.id,
+        buyerName: user.user_metadata?.display_name || user.email?.split('@')[0] || 'Buyer',
+        buyerEmail: user.email || '',
+      });
+      if (error) throw error;
+      toast.success('Purchase successful! Check your library.');
+      setBuyingProduct(null);
+      navigate('/library');
+    } catch (e: any) {
+      toast.error(e.message || 'Purchase failed.');
+    }
   };
 
   // Loading
@@ -223,7 +256,7 @@ export default function Storefront() {
                         <div className="text-2xl font-bold text-accent">
                           {formatCurrency(product.price)}
                         </div>
-                        <Button className="gap-1.5 shadow-sm">
+                        <Button className="gap-1.5 shadow-sm" onClick={() => handleBuyNow(product)}>
                           <ShoppingCart className="w-4 h-4" />
                           Buy Now
                         </Button>
@@ -268,6 +301,70 @@ export default function Storefront() {
 
         </div>
       </main>
+
+      {/* Purchase Confirmation Modal */}
+      {buyingProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-background border rounded-2xl shadow-2xl max-w-md w-full p-6 animate-scale-in">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold">Confirm Purchase</h3>
+              <button
+                onClick={() => setBuyingProduct(null)}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="mb-6 space-y-3">
+              <div className="flex items-start gap-3">
+                {buyingProduct.image_url ? (
+                  <img
+                    src={buyingProduct.image_url}
+                    alt={buyingProduct.title}
+                    className="w-16 h-16 rounded-xl object-cover"
+                  />
+                ) : (
+                  <div className="w-16 h-16 rounded-xl bg-muted flex items-center justify-center">
+                    <Package className="w-6 h-6 text-muted-foreground" />
+                  </div>
+                )}
+                <div className="flex-1">
+                  <p className="font-semibold">{buyingProduct.title}</p>
+                  <p className="text-sm text-muted-foreground line-clamp-2">{buyingProduct.description}</p>
+                </div>
+              </div>
+              <div className="flex items-center justify-between bg-muted/50 rounded-xl p-4">
+                <span className="text-sm text-muted-foreground">Total</span>
+                <span className="text-2xl font-bold text-accent">
+                  {formatCurrency(buyingProduct.price)}
+                </span>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setBuyingProduct(null)}
+                disabled={purchaseProduct.isPending}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={handleConfirmPurchase}
+                disabled={purchaseProduct.isPending}
+              >
+                {purchaseProduct.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                ) : (
+                  <ShoppingCart className="w-4 h-4 mr-2" />
+                )}
+                {purchaseProduct.isPending ? 'Processing...' : 'Confirm Purchase'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Footer />
     </div>
