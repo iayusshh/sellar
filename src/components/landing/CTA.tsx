@@ -11,7 +11,7 @@ export default function CTA() {
             Ready to take control of your earnings?
           </h2>
           <p className="text-xl opacity-90 mb-10 max-w-2xl mx-auto">
-            Join thousands of creators who are already managing their income smarter, 
+            Join thousands of creators who are already managing their income smarter,
             faster, and more efficiently.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
@@ -21,13 +21,19 @@ export default function CTA() {
                 <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Link>
             </Button>
-            <Button size="lg" variant="outline" className="bg-white/10 border-white/20 hover:bg-white/20 text-white" asChild>
-              <Link to="/creator/dashboard">
-                Explore Features
-              </Link>
+            <Button
+              size="lg"
+              variant="outline"
+              className="bg-white/10 border-white/20 hover:bg-white/20 text-white"
+              onClick={() => {
+                const el = document.getElementById('feature-showcase');
+                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
+            >
+              Explore Features
             </Button>
           </div>
-          
+
           <div className="mt-10 text-sm opacity-75">
             No credit card required • Free forever • Cancel anytime
           </div>

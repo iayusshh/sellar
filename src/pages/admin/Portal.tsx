@@ -21,9 +21,10 @@ import {
   Loader2,
   User,
   Store,
+  Trash2,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAdminData, useUpdateCommission, useUpdateTransaction } from '@/integrations/supabase/hooks';
+import { useAdminData, useUpdateCommission, useUpdateTransaction, useRemoveCreator } from '@/integrations/supabase/hooks';
 import { formatCurrency } from '@/lib/currency';
 import { formatTimeAgo } from '@/lib/date';
 import { toast } from 'sonner';
@@ -72,6 +73,8 @@ export default function AdminPortal() {
   const adminQuery = useAdminData();
   const updateCommission = useUpdateCommission();
   const updateTransaction = useUpdateTransaction();
+  const removeCreator = useRemoveCreator();
+  const [removingCreator, setRemovingCreator] = useState<string | null>(null);
 
   const { users, wallets, transactions, products, clients, purchases, visits } =
     adminQuery.data ?? {
@@ -94,6 +97,9 @@ export default function AdminPortal() {
       const prods = products.filter((p: any) => p.creator_id === creator.id);
       const clis = clients.filter((c: any) => c.creator_id === creator.id);
       const purch = purchases.filter((p: any) => p.creator_id === creator.id);
+      // Derive unique clients from purchases if clients table is empty for this creator
+      const purchaseClientIds = new Set(purch.map((p: any) => p.client_id).filter(Boolean));
+      const derivedClientCount = clis.length || purchaseClientIds.size;
       const income = txns.filter((t: any) => t.type === 'income' && t.status === 'completed');
       const pendingW = txns.filter((t: any) => t.type === 'withdrawal' && t.status === 'pending');
       const lifetimeEarnings = income.reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
@@ -109,6 +115,7 @@ export default function AdminPortal() {
         lifetimeEarnings,
         pendingWithdrawals: pendingAmount,
         commissionEarned: lifetimeEarnings * rate,
+        derivedClientCount,
       };
     });
   }, [creators, wallets, transactions, products, clients, purchases]);
@@ -281,13 +288,21 @@ export default function AdminPortal() {
     label,
     value,
     color = 'text-white',
+    onClick,
   }: {
     icon: React.ElementType;
     label: string;
     value: string | number;
     color?: string;
+    onClick?: () => void;
   }) => (
-    <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800/60 rounded-2xl p-5 hover:border-slate-700/60 transition-all duration-300">
+    <div
+      className={`bg-slate-900/60 backdrop-blur-xl border border-slate-800/60 rounded-2xl p-5 hover:border-slate-700/60 transition-all duration-300 ${onClick ? 'cursor-pointer hover:bg-slate-800/40 active:scale-[0.98]' : ''}`}
+      onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') onClick(); } : undefined}
+    >
       <div className="flex items-center gap-3 mb-3">
         <div className="w-10 h-10 rounded-xl bg-slate-800/80 flex items-center justify-center">
           <Icon className="w-5 h-5 text-emerald-400" />
@@ -318,12 +333,12 @@ export default function AdminPortal() {
   const renderOverview = () => (
     <div className="space-y-8">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <KPICard icon={DollarSign} label="Total Revenue" value={formatCurrency(totalRevenue)} color="text-emerald-300" />
-        <KPICard icon={TrendingUp} label="Platform Commission" value={formatCurrency(totalCommission)} color="text-amber-300" />
-        <KPICard icon={Wallet} label="Pending Withdrawals" value={formatCurrency(totalPendingAmount)} color="text-rose-300" />
-        <KPICard icon={UserCheck} label="Active Creators" value={creators.length} />
-        <KPICard icon={Users} label="Total Clients" value={clients.length} />
-        <KPICard icon={Eye} label="Total Traffic" value={visits.length} />
+        <KPICard icon={DollarSign} label="Total Revenue" value={formatCurrency(totalRevenue)} color="text-emerald-300" onClick={() => setActiveTab('withdrawals')} />
+        <KPICard icon={TrendingUp} label="Platform Commission" value={formatCurrency(totalCommission)} color="text-amber-300" onClick={() => setActiveTab('commission')} />
+        <KPICard icon={Wallet} label="Pending Withdrawals" value={formatCurrency(totalPendingAmount)} color="text-rose-300" onClick={() => setActiveTab('withdrawals')} />
+        <KPICard icon={UserCheck} label="Active Creators" value={creators.length} onClick={() => setActiveTab('creators')} />
+        <KPICard icon={Users} label="Total Clients" value={clients.length} onClick={() => setActiveTab('users')} />
+        <KPICard icon={Eye} label="Total Traffic" value={visits.length} onClick={() => setActiveTab('traffic')} />
       </div>
 
       {/* Revenue chart */}
@@ -457,7 +472,7 @@ export default function AdminPortal() {
                     </div>
                     <div>
                       <p className="text-slate-500">Clients</p>
-                      <p className="text-white font-semibold">{item.clients.length}</p>
+                      <p className="text-white font-semibold">{item.derivedClientCount}</p>
                     </div>
                   </div>
                   {isExpanded ? (
@@ -494,7 +509,7 @@ export default function AdminPortal() {
                         </div>
                         <div className="bg-slate-800/40 rounded-xl p-3">
                           <p className="text-slate-500">Clients</p>
-                          <p className="text-white font-semibold">{item.clients.length}</p>
+                          <p className="text-white font-semibold">{item.derivedClientCount}</p>
                         </div>
                       </div>
 
@@ -577,6 +592,50 @@ export default function AdminPortal() {
                               <p className="text-xs text-slate-500 pl-3">+{item.clients.length - 5} more</p>
                             )}
                           </div>
+                        )}
+                      </div>
+
+                      {/* Remove Creator */}
+                      <div className="border-t border-slate-800/60 pt-4">
+                        {removingCreator === item.creator.id ? (
+                          <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
+                            <p className="text-sm text-red-300 mb-3">
+                              Are you sure you want to remove <strong>{item.creator.display_name}</strong>? This will permanently delete all their products, clients, purchases, transactions, and wallet data. This action cannot be undone.
+                            </p>
+                            <div className="flex items-center gap-2">
+                              <button
+                                className="px-4 py-2 text-sm font-medium bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors disabled:opacity-50"
+                                onClick={async () => {
+                                  try {
+                                    const result = await removeCreator.mutateAsync(item.creator.id);
+                                    if (result.error) throw result.error;
+                                    toast.success(`${item.creator.display_name} has been removed.`);
+                                    setRemovingCreator(null);
+                                    setExpandedCreator(null);
+                                  } catch (e: any) {
+                                    toast.error(e.message || 'Failed to remove creator.');
+                                  }
+                                }}
+                                disabled={removeCreator.isPending}
+                              >
+                                {removeCreator.isPending ? 'Removing...' : 'Yes, Remove Permanently'}
+                              </button>
+                              <button
+                                className="px-4 py-2 text-sm font-medium bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
+                                onClick={() => setRemovingCreator(null)}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button
+                            className="text-sm text-red-400 hover:text-red-300 transition-colors flex items-center gap-1.5"
+                            onClick={() => setRemovingCreator(item.creator.id)}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            Remove Creator
+                          </button>
                         )}
                       </div>
                     </div>

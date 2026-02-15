@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import {
@@ -7,6 +7,7 @@ import {
   useProducts,
   useUpdateProduct,
 } from '@/integrations/supabase/hooks';
+import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/lib/currency';
 import { toast } from 'sonner';
 import {
@@ -24,6 +25,8 @@ import {
   FileText,
   Loader2,
   Search,
+  Link as LinkIcon,
+  Upload,
 } from 'lucide-react';
 import CreatorLayout from '@/components/layout/CreatorLayout';
 
@@ -44,8 +47,11 @@ export default function Products() {
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [imageUrl, setImageUrl] = useState('');
+  const [contentUrl, setContentUrl] = useState('');
   const [isActive, setIsActive] = useState(true);
   const [search, setSearch] = useState('');
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isSubmitting = createProduct.isPending || updateProduct.isPending || deleteProduct.isPending;
 
@@ -68,8 +74,40 @@ export default function Products() {
     setDescription('');
     setPrice('');
     setImageUrl('');
+    setContentUrl('');
     setIsActive(true);
     setShowForm(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleImageUpload = async (file: File) => {
+    if (!userId) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be under 5MB.');
+      return;
+    }
+    if (!file.type.startsWith('image/')) {
+      toast.error('Only image files are allowed.');
+      return;
+    }
+    setUploadingImage(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const filePath = `${userId}/${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from('products')
+        .upload(filePath, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage
+        .from('products')
+        .getPublicUrl(filePath);
+      setImageUrl(urlData.publicUrl);
+      toast.success('Image uploaded!');
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to upload image.');
+    } finally {
+      setUploadingImage(false);
+    }
   };
 
   const handleSubmit = async () => {
@@ -83,6 +121,7 @@ export default function Products() {
       price: Number(price),
       currency: 'INR',
       image_url: imageUrl.trim() || null,
+      content_url: contentUrl.trim() || null,
       is_active: isActive,
     };
 
@@ -104,6 +143,7 @@ export default function Products() {
     setDescription(product.description);
     setPrice(String(product.price));
     setImageUrl(product.image_url ?? '');
+    setContentUrl(product.content_url ?? '');
     setIsActive(product.is_active);
     setShowForm(true);
   };
@@ -216,16 +256,76 @@ export default function Products() {
                   className="w-full px-4 py-3 rounded-xl bg-white/[0.05] border border-white/[0.1] text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500/50 transition-colors text-sm resize-none"
                 />
               </div>
-              <div className="space-y-2">
+              <div className="md:col-span-2 space-y-2">
                 <label className="text-sm text-slate-400 flex items-center gap-2">
-                  <ImageIcon className="w-3.5 h-3.5" /> Image URL (optional)
+                  <ImageIcon className="w-3.5 h-3.5" /> Product Image (optional)
+                </label>
+                <div className="flex items-start gap-4">
+                  <div className="w-28 h-28 rounded-xl bg-slate-800 border border-slate-700/50 flex items-center justify-center overflow-hidden flex-shrink-0">
+                    {imageUrl ? (
+                      <img src={imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <ImageIcon className="w-8 h-8 text-slate-600" />
+                    )}
+                  </div>
+                  <div className="flex-1 space-y-3">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleImageUpload(file);
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploadingImage}
+                      className="w-full h-20 rounded-xl border-2 border-dashed border-slate-700 hover:border-emerald-500/50 bg-white/[0.02] flex flex-col items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {uploadingImage ? (
+                        <Loader2 className="w-5 h-5 text-emerald-400 animate-spin" />
+                      ) : (
+                        <Upload className="w-5 h-5 text-slate-500" />
+                      )}
+                      <span className="text-xs text-slate-500">
+                        {uploadingImage ? 'Uploading...' : 'Click to upload image (max 5MB)'}
+                      </span>
+                    </button>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-slate-600 uppercase">or paste URL</span>
+                      <input
+                        value={imageUrl}
+                        onChange={(e) => setImageUrl(e.target.value)}
+                        placeholder="https://..."
+                        className="flex-1 h-8 px-3 rounded-lg bg-white/[0.03] border border-white/[0.08] text-white placeholder:text-slate-600 focus:outline-none focus:border-emerald-500/50 transition-colors text-xs"
+                      />
+                    </div>
+                    {imageUrl && (
+                      <button
+                        type="button"
+                        onClick={() => { setImageUrl(''); if (fileInputRef.current) fileInputRef.current.value = ''; }}
+                        className="text-xs text-red-400 hover:text-red-300 transition-colors"
+                      >
+                        Remove image
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="md:col-span-2 space-y-2">
+                <label className="text-sm text-slate-400 flex items-center gap-2">
+                  <LinkIcon className="w-3.5 h-3.5" /> Content URL (delivered after purchase)
                 </label>
                 <input
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  placeholder="https://..."
+                  value={contentUrl}
+                  onChange={(e) => setContentUrl(e.target.value)}
+                  placeholder="https://drive.google.com/... or a download link"
                   className="w-full h-11 px-4 rounded-xl bg-white/[0.05] border border-white/[0.1] text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500/50 transition-colors text-sm"
                 />
+                <p className="text-[11px] text-slate-600">Paste a link to the file buyers will receive — Google Drive, Notion, Dropbox, etc.</p>
               </div>
               <div className="flex items-end">
                 <label className="flex items-center gap-3 h-11 px-4 rounded-xl bg-white/[0.05] border border-white/[0.1] cursor-pointer w-full">
@@ -309,8 +409,8 @@ export default function Products() {
                     <div className="flex items-center gap-3 mt-1.5">
                       <span className="text-sm font-semibold text-emerald-400">{formatCurrency(product.price)}</span>
                       <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${product.is_active
-                          ? 'bg-emerald-500/15 text-emerald-400'
-                          : 'bg-slate-700/50 text-slate-500'
+                        ? 'bg-emerald-500/15 text-emerald-400'
+                        : 'bg-slate-700/50 text-slate-500'
                         }`}>
                         {product.is_active ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
                         {product.is_active ? 'Active' : 'Hidden'}

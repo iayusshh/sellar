@@ -75,6 +75,12 @@ export const userQueries = {
     return { data, error };
   },
 
+  removeCreator: async (creatorId: string) => {
+    const { data, error } = await supabase
+      .rpc('admin_remove_creator', { target_creator_id: creatorId });
+    return { data, error };
+  },
+
   checkHandleAvailability: async (handle: string) => {
     const { data, error } = await supabase
       .rpc('check_handle_available', { handle_to_check: handle });
@@ -237,6 +243,23 @@ export const adminQueries = {
   },
   getVisits: async () => {
     const { data, error } = await supabase.from('visits').select('*');
+    return { data, error };
+  },
+};
+
+// Purchase queries
+export const purchaseQueries = {
+  purchaseProduct: async (productId: string, buyerName: string, buyerEmail: string) => {
+    const { data, error } = await supabase.rpc('purchase_product', {
+      p_product_id: productId,
+      p_buyer_name: buyerName,
+      p_buyer_email: buyerEmail,
+    });
+    return { data, error };
+  },
+
+  getMyPurchases: async () => {
+    const { data, error } = await supabase.rpc('get_my_purchases');
     return { data, error };
   },
 };
