@@ -90,6 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         redirectTo: `${window.location.origin}/`,
       },
     });
+    console.log('Google Sign-In Redirect URL:', `${window.location.origin}/`);
     return { error };
   };
 
