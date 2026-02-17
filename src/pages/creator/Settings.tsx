@@ -83,13 +83,15 @@ export default function Settings() {
 
         setUploading(true);
         const ext = file.name.split('.').pop();
-        const filePath = `avatars/${user.id}.${ext}`;
+        const fileName = `${Date.now()}.${ext}`;
+        const filePath = `${user.id}/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
             .from('avatars')
             .upload(filePath, file, { upsert: true });
 
         if (uploadError) {
+            console.error('Upload error:', uploadError);
             toast.error('Failed to upload image.');
             setUploading(false);
             return;
