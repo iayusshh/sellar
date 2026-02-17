@@ -27,7 +27,7 @@ export default function OwnerRoute({ children }: OwnerRouteProps) {
   }
 
   if (!profile?.is_owner) {
-    return <Navigate to="/creator/dashboard" replace />;
+    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;

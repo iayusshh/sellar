@@ -41,7 +41,7 @@ export default function SignUp() {
   // Redirect if already authenticated
   useEffect(() => {
     if (user) {
-      navigate('/creator/dashboard', { replace: true });
+      navigate('/', { replace: true });
     }
   }, [user, navigate]);
 
@@ -212,10 +212,10 @@ export default function SignUp() {
                     disabled={loading}
                     required
                     className={`pl-10 pr-10 h-11 bg-white/[0.05] border-white/[0.1] text-white placeholder:text-slate-500 transition-all duration-200 ${isHandleValid && isHandleAvailable
-                        ? 'border-emerald-500/50 focus:border-emerald-500/50 focus:ring-emerald-500/20'
-                        : isHandleValid && isHandleTaken
-                          ? 'border-red-500/50 focus:border-red-500/50 focus:ring-red-500/20'
-                          : 'focus:border-emerald-500/50 focus:ring-emerald-500/20'
+                      ? 'border-emerald-500/50 focus:border-emerald-500/50 focus:ring-emerald-500/20'
+                      : isHandleValid && isHandleTaken
+                        ? 'border-red-500/50 focus:border-red-500/50 focus:ring-red-500/20'
+                        : 'focus:border-emerald-500/50 focus:ring-emerald-500/20'
                       }`}
                   />
                   {/* Availability indicator */}

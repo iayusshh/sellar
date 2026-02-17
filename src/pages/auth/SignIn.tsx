@@ -21,7 +21,7 @@ export default function SignIn() {
   // Redirect if already authenticated
   useEffect(() => {
     if (user) {
-      navigate('/creator/dashboard', { replace: true });
+      navigate('/', { replace: true });
     }
   }, [user, navigate]);
 

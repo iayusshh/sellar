@@ -69,10 +69,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else if (profile?.is_admin) {
           navigate('/admin/portal');
         } else {
-          navigate('/creator/dashboard');
+          try {
+            navigate('/');
+          } catch (e) {
+            console.error('Failed to navigate to dashboard:', e);
+          }
         }
       } else {
-        navigate('/creator/dashboard');
+        navigate('/');
       }
     }
 
@@ -83,7 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/creator/dashboard`,
+        redirectTo: `${window.location.origin}/`,
       },
     });
     return { error };

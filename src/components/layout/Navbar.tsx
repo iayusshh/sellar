@@ -74,6 +74,11 @@ export default function Navbar() {
           <div className="hidden md:flex items-center gap-3">
             {user ? (
               <>
+                <Button asChild variant="default" className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/20">
+                  <Link to="/creator/dashboard">
+                    My Creator Dashboard
+                  </Link>
+                </Button>
                 <Link to="/library" className="text-sm font-medium hover:text-accent transition-colors">
                   My Library
                 </Link>
@@ -148,6 +153,16 @@ export default function Navbar() {
               <div className="flex flex-col gap-2 pt-4 border-t">
                 {user ? (
                   <>
+                    <Button
+                      asChild
+                      variant="default"
+                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/20 mb-2"
+                      onClick={() => setIsOpen(false)}
+                    >
+                      <Link to="/creator/dashboard">
+                        My Creator Dashboard
+                      </Link>
+                    </Button>
                     <Link
                       to="/library"
                       className="text-sm font-medium hover:text-accent transition-colors"

@@ -31,7 +31,7 @@ export default function AdminRoute({ children }: AdminRouteProps) {
   }
 
   if (!profile?.is_admin) {
-    return <Navigate to="/creator/dashboard" replace />;
+    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;
