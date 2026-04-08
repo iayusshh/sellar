@@ -194,6 +194,8 @@ GRANT EXECUTE ON FUNCTION mark_purchase_failed(UUID)                       TO se
 -- ── 8. Ensure get_my_purchases only returns completed rows ───────────────
 -- (It already filters on status = 'completed'; this is a safety re-confirm.)
 -- Re-create to include the payment_provider column in the output.
+-- Must DROP first because the return type changed (new payment_provider column).
+DROP FUNCTION IF EXISTS get_my_purchases();
 CREATE OR REPLACE FUNCTION get_my_purchases()
 RETURNS TABLE (
   purchase_id         UUID,
