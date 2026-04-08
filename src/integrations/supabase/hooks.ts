@@ -229,16 +229,9 @@ export const useDeleteProduct = () => {
 };
 
 // Purchase hooks
-export const usePurchaseProduct = () => {
-  const queryClient = useQueryClient();
+export const useStartCheckout = () => {
   return useMutation({
-    mutationFn: ({ productId, buyerName, buyerEmail }: { productId: string; buyerName: string; buyerEmail: string }) =>
-      purchaseQueries.purchaseProduct(productId, buyerName, buyerEmail),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['my-purchases'] });
-      queryClient.invalidateQueries({ queryKey: ['wallet'] });
-      queryClient.invalidateQueries({ queryKey: ['admin'] });
-    },
+    mutationFn: (productId: string) => purchaseQueries.startCheckout(productId),
   });
 };
 

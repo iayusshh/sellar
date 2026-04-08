@@ -248,14 +248,40 @@ export const adminQueries = {
 };
 
 // Purchase queries
+
+export interface CheckoutResult {
+  payment_session_id: string;
+  cashfree_order_id: string;
+  purchase_id: string;
+}
+
 export const purchaseQueries = {
-  purchaseProduct: async (productId: string, buyerName: string, buyerEmail: string) => {
-    const { data, error } = await supabase.rpc('purchase_product', {
-      p_product_id: productId,
-      p_buyer_name: buyerName,
-      p_buyer_email: buyerEmail,
-    });
-    return { data, error };
+  /**
+   * Starts a real payment checkout.
+   * Calls the create-cashfree-order Edge Function which:
+   *  1. Creates a pending purchase row in DB
+   *  2. Creates a Cashfree order via their API
+   *  3. Returns the payment_session_id for the Drop-in SDK
+   */
+  startCheckout: async (productId: string): Promise<{ data: CheckoutResult | null; error: Error | null }> => {
+    const { data, error } = await supabase.functions.invoke<CheckoutResult>(
+      'create-cashfree-order',
+      { body: { product_id: productId } }
+    );
+    return { data: data ?? null, error: error as Error | null };
+  },
+
+  /**
+   * Reconciliation fast-path: verify payment status directly with Cashfree.
+   * Called after the Drop-in SDK's onSuccess callback and from the /payment/return page.
+   */
+  verifyOrder: async (cashfreeOrderId: string): Promise<{ status: 'completed' | 'pending' | 'failed' }> => {
+    const { data, error } = await supabase.functions.invoke<{ status: string }>(
+      'verify-cashfree-order',
+      { body: { cashfree_order_id: cashfreeOrderId } }
+    );
+    if (error) throw error;
+    return { status: (data?.status ?? 'pending') as 'completed' | 'pending' | 'failed' };
   },
 
   getMyPurchases: async () => {

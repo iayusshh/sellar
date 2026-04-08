@@ -17,6 +17,7 @@ import Wallet from '@/pages/creator/Wallet';
 import Storefront from '@/pages/creator/Storefront';
 import Settings from '@/pages/creator/Settings';
 import Library from '@/pages/Library';
+import PaymentReturn from '@/pages/payment/Return';
 
 import AdminPortal from '@/pages/admin/Portal';
 import OwnerPortal from '@/pages/admin/OwnerPortal';
@@ -94,6 +95,7 @@ function App() {
             </OwnerRoute>
           }
         />
+        <Route path="/payment/return" element={<PaymentReturn />} />
         <Route path="/:handle" element={<Storefront />} />
         <Route path="*" element={<NotFound />} />
       </Routes>

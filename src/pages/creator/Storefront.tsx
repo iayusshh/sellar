@@ -18,7 +18,10 @@ import {
   ExternalLink,
   X,
 } from 'lucide-react';
-import { useProfileByHandle, usePublicProducts, usePurchaseProduct } from '@/integrations/supabase/hooks';
+import { useProfileByHandle, usePublicProducts, useStartCheckout } from '@/integrations/supabase/hooks';
+import { purchaseQueries } from '@/integrations/supabase/queries';
+import { openCashfreeCheckout } from '@/lib/cashfree';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { formatCurrency } from '@/lib/currency';
 import { useState } from 'react';
@@ -41,7 +44,9 @@ export default function Storefront() {
   const products = productsQuery.data?.data ?? [];
   const [copied, setCopied] = useState(false);
   const [buyingProduct, setBuyingProduct] = useState<any>(null);
-  const purchaseProduct = usePurchaseProduct();
+  const [dropInOpen, setDropInOpen] = useState(false);
+  const startCheckout = useStartCheckout();
+  const queryClient = useQueryClient();
 
   const socialLinks = (profile?.social_links as Record<string, string>) || {};
 
@@ -62,18 +67,74 @@ export default function Storefront() {
 
   const handleConfirmPurchase = async () => {
     if (!buyingProduct || !user) return;
+
+    // ── Step 1: Create a Cashfree order via Edge Function ─────────────────
+    let paymentSessionId: string;
+    let cashfreeOrderId: string;
     try {
-      const { error } = await purchaseProduct.mutateAsync({
-        productId: buyingProduct.id,
-        buyerName: user.user_metadata?.display_name || user.email?.split('@')[0] || 'Buyer',
-        buyerEmail: user.email || '',
-      });
+      const { data, error } = await startCheckout.mutateAsync(buyingProduct.id);
       if (error) throw error;
-      toast.success('Purchase successful! Check your library.');
+      if (!data) throw new Error('No checkout session returned');
+      paymentSessionId = data.payment_session_id;
+      cashfreeOrderId = data.cashfree_order_id;
+    } catch (e: any) {
+      toast.error(e.message || 'Could not start checkout. Please try again.');
+      return;
+    }
+
+    // ── Step 2: Open Cashfree Drop-in modal ───────────────────────────────
+    setDropInOpen(true);
+    let dropInResult;
+    try {
+      dropInResult = await openCashfreeCheckout(paymentSessionId);
+    } catch (e: any) {
+      setDropInOpen(false);
+      toast.error('Payment could not be opened. Please try again.');
+      return;
+    }
+    setDropInOpen(false);
+
+    if (dropInResult?.error) {
+      // User cancelled or payment failed inside the Drop-in
+      toast.error(dropInResult.error.message || 'Payment was not completed.');
+      return;
+    }
+
+    // ── Step 3: Reconciliation fast-path (belt-and-suspenders) ───────────
+    // Verify with Cashfree directly so we don't depend on webhook timing.
+    toast.loading('Confirming payment...', { id: 'payment-confirm' });
+    const MAX_POLLS = 3;
+    let confirmed = false;
+
+    for (let attempt = 0; attempt < MAX_POLLS; attempt++) {
+      try {
+        const { status } = await purchaseQueries.verifyOrder(cashfreeOrderId);
+        if (status === 'completed') {
+          confirmed = true;
+          break;
+        }
+        if (status === 'failed') break;
+      } catch {
+        // Network glitch — keep polling
+      }
+      if (attempt < MAX_POLLS - 1) {
+        await new Promise((res) => setTimeout(res, 1500));
+      }
+    }
+
+    toast.dismiss('payment-confirm');
+
+    if (confirmed) {
+      queryClient.invalidateQueries({ queryKey: ['my-purchases'] });
+      queryClient.invalidateQueries({ queryKey: ['wallet'] });
+      queryClient.invalidateQueries({ queryKey: ['admin'] });
+      toast.success('Payment successful! Check your library.');
       setBuyingProduct(null);
       navigate('/library');
-    } catch (e: any) {
-      toast.error(e.message || 'Purchase failed.');
+    } else {
+      // Webhook may still be in-flight — send to return page which polls further
+      setBuyingProduct(null);
+      navigate(`/payment/return?order_id=${cashfreeOrderId}`);
     }
   };
 
@@ -345,21 +406,21 @@ export default function Storefront() {
                 variant="outline"
                 className="flex-1"
                 onClick={() => setBuyingProduct(null)}
-                disabled={purchaseProduct.isPending}
+                disabled={startCheckout.isPending || dropInOpen}
               >
                 Cancel
               </Button>
               <Button
                 className="flex-1"
                 onClick={handleConfirmPurchase}
-                disabled={purchaseProduct.isPending}
+                disabled={startCheckout.isPending || dropInOpen}
               >
-                {purchaseProduct.isPending ? (
+                {(startCheckout.isPending || dropInOpen) ? (
                   <Loader2 className="w-4 h-4 animate-spin mr-2" />
                 ) : (
                   <ShoppingCart className="w-4 h-4 mr-2" />
                 )}
-                {purchaseProduct.isPending ? 'Processing...' : 'Confirm Purchase'}
+                {startCheckout.isPending ? 'Creating order...' : dropInOpen ? 'Processing...' : 'Confirm Purchase'}
               </Button>
             </div>
           </div>
