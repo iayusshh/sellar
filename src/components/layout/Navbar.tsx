@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Wallet, Menu, X, LogOut, BookOpen } from 'lucide-react';
+import { Wallet, Menu, X, LogOut, BookOpen, Sparkles, LayoutDashboard } from 'lucide-react';
 import { useState, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/integrations/supabase/hooks';
@@ -9,7 +9,9 @@ export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const { user, signOut } = useAuth();
   const profileQuery = useProfile(user?.id ?? '');
-  const isAdmin = !!profileQuery.data?.data?.is_admin;
+  const profile = profileQuery.data?.data;
+  const isAdmin = !!profile?.is_admin;
+  const isCreator = !!profile?.is_creator;
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -17,9 +19,7 @@ export default function Navbar() {
     const doScroll = () => {
       window.dispatchEvent(new CustomEvent('showcase-tab', { detail: tab }));
       const el = document.getElementById('feature-showcase');
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     };
 
     if (location.pathname === '/') {
@@ -33,15 +33,15 @@ export default function Navbar() {
   return (
     <nav className="fixed top-0 w-full bg-background/80 backdrop-blur-md border-b z-50">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 font-display font-bold text-xl">
+        <div className="flex items-center h-16">
+          {/* Logo — fixed left */}
+          <Link to="/" className="flex items-center gap-2 font-display font-bold text-xl shrink-0">
             <Wallet className="w-6 h-6 text-accent" />
             <span>Sellar</span>
           </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-6">
+          {/* Desktop Navigation — true center */}
+          <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center gap-6">
             <Link to="/" className="text-sm font-medium hover:text-accent transition-colors">
               Home
             </Link>
@@ -49,54 +49,69 @@ export default function Navbar() {
               onClick={() => scrollToShowcase('dashboard')}
               className="text-sm font-medium hover:text-accent transition-colors"
             >
-              Dashboard
+              Features
             </button>
-            <button
-              onClick={() => scrollToShowcase('wallet')}
-              className="text-sm font-medium hover:text-accent transition-colors"
-            >
-              Wallet
-            </button>
-            <button
-              onClick={() => scrollToShowcase('products')}
-              className="text-sm font-medium hover:text-accent transition-colors"
-            >
-              Products
-            </button>
-            {isAdmin ? (
+            {isAdmin && (
               <Link to="/admin/portal" className="text-sm font-medium hover:text-accent transition-colors">
                 Admin
               </Link>
-            ) : null}
+            )}
           </div>
+
+          {/* Spacer to push auth buttons right */}
+          <div className="flex-1" />
 
           {/* Desktop Auth Buttons */}
           <div className="hidden md:flex items-center gap-3">
             {user ? (
-              <>
-                <Button asChild variant="default" className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/20">
-                  <Link to="/creator/dashboard">
-                    My Creator Dashboard
-                  </Link>
-                </Button>
-                <Link to="/library" className="text-sm font-medium hover:text-accent transition-colors">
-                  My Library
-                </Link>
-                <span className="text-sm text-muted-foreground">
-                  {user.email}
-                </span>
-                <Button variant="ghost" onClick={() => signOut()}>
-                  <LogOut className="mr-2 w-4 h-4" />
-                  Sign Out
-                </Button>
-              </>
+              isCreator ? (
+                /* Creator is logged in */
+                <>
+                  <Button asChild variant="default" className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/20">
+                    <Link to="/creator/dashboard">
+                      <LayoutDashboard className="mr-2 w-4 h-4" />
+                      Creator Dashboard
+                    </Link>
+                  </Button>
+                  <span className="text-sm text-muted-foreground">{user.email}</span>
+                  <Button variant="ghost" size="sm" onClick={() => signOut()}>
+                    <LogOut className="mr-2 w-4 h-4" />
+                    Sign Out
+                  </Button>
+                </>
+              ) : (
+                /* General user is logged in */
+                <>
+                  <Button asChild variant="ghost" size="sm">
+                    <Link to="/library">
+                      <BookOpen className="mr-2 w-4 h-4" />
+                      My Library
+                    </Link>
+                  </Button>
+                  <Button asChild variant="outline" size="sm" className="border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300">
+                    <Link to="/become-a-creator">
+                      <Sparkles className="mr-2 w-4 h-4" />
+                      Become a Creator
+                    </Link>
+                  </Button>
+                  <span className="text-sm text-muted-foreground">{user.email}</span>
+                  <Button variant="ghost" size="sm" onClick={() => signOut()}>
+                    <LogOut className="mr-2 w-4 h-4" />
+                    Sign Out
+                  </Button>
+                </>
+              )
             ) : (
+              /* Not logged in */
               <>
-                <Button variant="ghost" asChild>
-                  <Link to="/auth/signin">Sign In</Link>
-                </Button>
-                <Button asChild>
-                  <Link to="/auth/signup">Get Started</Link>
+                <Link to="/auth/signin" className="text-sm font-medium hover:text-accent transition-colors">
+                  Sign In
+                </Link>
+                <Button asChild variant="outline" className="border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300">
+                  <Link to="/become-a-creator">
+                    <Sparkles className="mr-2 w-4 h-4" />
+                    Become a Creator
+                  </Link>
                 </Button>
               </>
             )}
@@ -127,21 +142,9 @@ export default function Navbar() {
                 className="text-sm font-medium hover:text-accent transition-colors text-left"
                 onClick={() => { scrollToShowcase('dashboard'); setIsOpen(false); }}
               >
-                Dashboard
+                Features
               </button>
-              <button
-                className="text-sm font-medium hover:text-accent transition-colors text-left"
-                onClick={() => { scrollToShowcase('wallet'); setIsOpen(false); }}
-              >
-                Wallet
-              </button>
-              <button
-                className="text-sm font-medium hover:text-accent transition-colors text-left"
-                onClick={() => { scrollToShowcase('products'); setIsOpen(false); }}
-              >
-                Products
-              </button>
-              {isAdmin ? (
+              {isAdmin && (
                 <Link
                   to="/admin/portal"
                   className="text-sm font-medium hover:text-accent transition-colors"
@@ -149,47 +152,78 @@ export default function Navbar() {
                 >
                   Admin
                 </Link>
-              ) : null}
+              )}
               <div className="flex flex-col gap-2 pt-4 border-t">
                 {user ? (
+                  isCreator ? (
+                    <>
+                      <Button
+                        asChild
+                        variant="default"
+                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/20 mb-2"
+                        onClick={() => setIsOpen(false)}
+                      >
+                        <Link to="/creator/dashboard">
+                          <LayoutDashboard className="mr-2 w-4 h-4" />
+                          Creator Dashboard
+                        </Link>
+                      </Button>
+                      <div className="text-sm text-muted-foreground px-4 py-2">{user.email}</div>
+                      <Button variant="ghost" onClick={() => signOut()} className="w-full">
+                        <LogOut className="mr-2 w-4 h-4" />
+                        Sign Out
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button
+                        asChild
+                        variant="ghost"
+                        className="w-full justify-start"
+                        onClick={() => setIsOpen(false)}
+                      >
+                        <Link to="/library">
+                          <BookOpen className="mr-2 w-4 h-4" />
+                          My Library
+                        </Link>
+                      </Button>
+                      <Button
+                        asChild
+                        variant="outline"
+                        className="w-full border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300"
+                        onClick={() => setIsOpen(false)}
+                      >
+                        <Link to="/become-a-creator">
+                          <Sparkles className="mr-2 w-4 h-4" />
+                          Become a Creator
+                        </Link>
+                      </Button>
+                      <div className="text-sm text-muted-foreground px-4 py-2">{user.email}</div>
+                      <Button variant="ghost" onClick={() => signOut()} className="w-full">
+                        <LogOut className="mr-2 w-4 h-4" />
+                        Sign Out
+                      </Button>
+                    </>
+                  )
+                ) : (
                   <>
-                    <Button
-                      asChild
-                      variant="default"
-                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/20 mb-2"
-                      onClick={() => setIsOpen(false)}
-                    >
-                      <Link to="/creator/dashboard">
-                        My Creator Dashboard
-                      </Link>
-                    </Button>
                     <Link
-                      to="/library"
+                      to="/auth/signin"
                       className="text-sm font-medium hover:text-accent transition-colors"
                       onClick={() => setIsOpen(false)}
                     >
-                      <BookOpen className="w-4 h-4 inline mr-2" />
-                      My Library
+                      Sign In
                     </Link>
-                    <div className="text-sm text-muted-foreground px-4 py-2">
-                      {user.email}
-                    </div>
                     <Button
-                      variant="ghost"
-                      onClick={() => signOut()}
-                      className="w-full"
+                      asChild
+                      variant="outline"
+                      className="w-full border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/10"
+                      onClick={() => setIsOpen(false)}
                     >
-                      <LogOut className="mr-2 w-4 h-4" />
-                      Sign Out
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <Button variant="ghost" asChild className="w-full">
-                      <Link to="/auth/signin">Sign In</Link>
-                    </Button>
-                    <Button asChild className="w-full">
-                      <Link to="/auth/signup">Get Started</Link>
+                      <Link to="/become-a-creator">
+                        <Sparkles className="mr-2 w-4 h-4" />
+                        Become a Creator
+                      </Link>
                     </Button>
                   </>
                 )}

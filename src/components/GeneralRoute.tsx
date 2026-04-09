@@ -4,11 +4,15 @@ import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/integrations/supabase/hooks';
 import { Loader2 } from 'lucide-react';
 
-interface CreatorRouteProps {
+interface GeneralRouteProps {
   children: ReactNode;
 }
 
-export default function CreatorRoute({ children }: CreatorRouteProps) {
+/**
+ * Allows only general (buyer) accounts.
+ * Creators are redirected to their dashboard — they cannot access buyer-only pages.
+ */
+export default function GeneralRoute({ children }: GeneralRouteProps) {
   const { user, loading } = useAuth();
   const userId = user?.id ?? '';
   const profileQuery = useProfile(userId);
@@ -26,17 +30,8 @@ export default function CreatorRoute({ children }: CreatorRouteProps) {
     return <Navigate to="/auth/signin" replace />;
   }
 
-  if (profile?.is_owner) {
-    return <Navigate to="/owner/portal" replace />;
-  }
-
-  if (profile?.is_admin) {
-    return <Navigate to="/admin/portal" replace />;
-  }
-
-  // Must have creator account to access creator pages
-  if (!profile?.is_creator) {
-    return <Navigate to="/" replace />;
+  if (profile?.is_creator) {
+    return <Navigate to="/creator/dashboard" replace />;
   }
 
   return <>{children}</>;

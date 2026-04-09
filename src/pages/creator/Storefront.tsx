@@ -18,7 +18,7 @@ import {
   ExternalLink,
   X,
 } from 'lucide-react';
-import { useProfileByHandle, usePublicProducts, useStartCheckout } from '@/integrations/supabase/hooks';
+import { useProfileByHandle, usePublicProducts, useStartCheckout, useProfile } from '@/integrations/supabase/hooks';
 import { purchaseQueries } from '@/integrations/supabase/queries';
 import { openCashfreeCheckout } from '@/lib/cashfree';
 import { useQueryClient } from '@tanstack/react-query';
@@ -38,6 +38,8 @@ export default function Storefront() {
   const { handle } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const buyerProfileQuery = useProfile(user?.id ?? '');
+  const isCreatorAccount = !!buyerProfileQuery.data?.data?.is_creator;
   const profileQuery = useProfileByHandle(handle ?? '');
   const profile = profileQuery.data?.data;
   const productsQuery = usePublicProducts(profile?.id ?? '');
@@ -62,6 +64,10 @@ export default function Storefront() {
       navigate(`/auth/signin?redirect=/${handle}`);
       return;
     }
+    if (isCreatorAccount) {
+      toast.error('Creator accounts cannot make purchases. Use a general account to buy products.');
+      return;
+    }
     setBuyingProduct(product);
   };
 
@@ -73,12 +79,39 @@ export default function Storefront() {
     let cashfreeOrderId: string;
     try {
       const { data, error } = await startCheckout.mutateAsync(buyingProduct.id);
-      if (error) throw error;
+      if (error) {
+        // FunctionsHttpError.context is the raw Response — extract the real message
+        let message = (error as any).message as string;
+        try {
+          const ctx = (error as any).context;
+          if (ctx && typeof ctx.json === 'function') {
+            const body = await ctx.json();
+            console.error('[checkout] edge fn error body:', body);
+            if (body?.error) message = body.error;
+            else message = JSON.stringify(body);
+          } else {
+            console.error('[checkout] error (no context):', error);
+          }
+        } catch (parseErr) {
+          console.error('[checkout] could not parse error body:', parseErr);
+        }
+        throw new Error(message);
+      }
       if (!data) throw new Error('No checkout session returned');
       paymentSessionId = data.payment_session_id;
       cashfreeOrderId = data.cashfree_order_id;
     } catch (e: any) {
-      toast.error(e.message || 'Could not start checkout. Please try again.');
+      const msg: string = e.message ?? '';
+      if (msg.toLowerCase().includes('sign out and sign back in')) {
+        toast.error(msg);
+        return;
+      }
+      if (msg.toLowerCase().includes('session expired') || msg.toLowerCase().includes('please sign in')) {
+        toast.error('Session expired. Please sign in again.');
+        navigate(`/auth/signin?redirect=/${handle}`);
+        return;
+      }
+      toast.error(msg || 'Could not start checkout. Please try again.');
       return;
     }
 
@@ -317,9 +350,14 @@ export default function Storefront() {
                         <div className="text-2xl font-bold text-accent">
                           {formatCurrency(product.price)}
                         </div>
-                        <Button className="gap-1.5 shadow-sm" onClick={() => handleBuyNow(product)}>
+                        <Button
+                          className="gap-1.5 shadow-sm"
+                          onClick={() => handleBuyNow(product)}
+                          disabled={isCreatorAccount}
+                          title={isCreatorAccount ? 'Creator accounts cannot purchase products' : undefined}
+                        >
                           <ShoppingCart className="w-4 h-4" />
-                          Buy Now
+                          {isCreatorAccount ? 'Creators cannot buy' : 'Buy Now'}
                         </Button>
                       </div>
                     </div>

@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+
+# Build outputs and caches
+dist/
+build/
+.next/cache/
+coverage/
+*.tsbuildinfo
+.vercel/
+.vercel/output/
+
+# Local environment and logs
+.env
+.env.local
+.env.*.local
+*.log
+
+# Tooling caches
+.cache/
+.parcel-cache/
+.eslintcache
+supabase/.temp/
+supabase/.branches/
+supabase/.cache/
+
+# Dev-only artifacts
+test/
+src/test/
+*.sql
+docker-compose.yml
+setup-supabase.sh
+verify-supabase.js
+
+# Project docs
+README.md
+PROJECT_SUMMARY.md
+SUPABASE_SETUP.md
+masterplan.md

@@ -2,6 +2,7 @@ import { Routes, Route } from 'react-router-dom';
 import { Toaster } from '@/components/ui/toaster';
 import { Toaster as Sonner } from 'sonner';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import GeneralRoute from '@/components/GeneralRoute';
 import CreatorRoute from '@/components/CreatorRoute';
 import Index from '@/pages/Index';
 import NotFound from '@/pages/NotFound';
@@ -11,6 +12,7 @@ import OwnerSignIn from '@/pages/auth/OwnerSignIn';
 import ForgotPassword from '@/pages/auth/ForgotPassword';
 import ResetPassword from '@/pages/auth/ResetPassword';
 import VerifyEmail from '@/pages/auth/VerifyEmail';
+import BecomeCreator from '@/pages/BecomeCreator';
 import Dashboard from '@/pages/creator/Dashboard';
 import Products from '@/pages/creator/Products';
 import Wallet from '@/pages/creator/Wallet';
@@ -29,6 +31,7 @@ function App() {
   return (
     <>
       <Routes>
+        {/* Public */}
         <Route path="/" element={<Index />} />
         <Route path="/auth/signin" element={<SignIn />} />
         <Route path="/auth/signup" element={<SignUp />} />
@@ -36,7 +39,20 @@ function App() {
         <Route path="/auth/forgot-password" element={<ForgotPassword />} />
         <Route path="/auth/reset-password" element={<ResetPassword />} />
         <Route path="/auth/verify-email" element={<VerifyEmail />} />
+        <Route path="/become-a-creator" element={<BecomeCreator />} />
         <Route path="/test-supabase" element={<SupabaseTest />} />
+
+        {/* General (buyer) only */}
+        <Route
+          path="/library"
+          element={
+            <GeneralRoute>
+              <Library />
+            </GeneralRoute>
+          }
+        />
+
+        {/* Creator only */}
         <Route
           path="/creator/dashboard"
           element={
@@ -70,15 +86,7 @@ function App() {
           }
         />
 
-        <Route
-          path="/library"
-          element={
-            <ProtectedRoute>
-              <Library />
-            </ProtectedRoute>
-          }
-        />
-
+        {/* Admin / Owner */}
         <Route
           path="/admin/portal"
           element={
@@ -95,7 +103,11 @@ function App() {
             </OwnerRoute>
           }
         />
+
+        {/* Payment callback — no auth guard, Cashfree redirects here */}
         <Route path="/payment/return" element={<PaymentReturn />} />
+
+        {/* Public creator storefronts */}
         <Route path="/:handle" element={<Storefront />} />
         <Route path="*" element={<NotFound />} />
       </Routes>

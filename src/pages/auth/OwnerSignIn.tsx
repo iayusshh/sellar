@@ -43,19 +43,22 @@ export default function OwnerSignIn() {
       return;
     }
 
-    const { data: profile, error: profileError } = await supabase
+    const { data: profileRows, error: profileError } = await supabase
       .from('users')
       .select('is_owner')
       .eq('id', userId)
-      .single();
+      .limit(1);
+
+    const profile = profileRows?.[0];
 
     let hasOwnerAccess = !!profile?.is_owner;
     if (!hasOwnerAccess) {
-      const { data: fallbackProfile } = await supabase
+      const { data: fallbackRows } = await supabase
         .from('users')
         .select('is_owner')
         .eq('email', userEmail)
-        .single();
+        .limit(1);
+      const fallbackProfile = fallbackRows?.[0];
       hasOwnerAccess = !!fallbackProfile?.is_owner;
     }
 

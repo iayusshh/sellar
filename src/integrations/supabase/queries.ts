@@ -47,8 +47,8 @@ export const userQueries = {
       .from('users')
       .select('*')
       .eq('id', userId)
-      .single();
-    return { data: data as User, error };
+      .limit(1);
+    return { data: (data?.[0] ?? null) as User | null, error };
   },
 
   getProfileByHandle: async (handle: string) => {
@@ -65,8 +65,8 @@ export const userQueries = {
       .update(updates)
       .eq('id', userId)
       .select()
-      .single();
-    return { data, error };
+      .limit(1);
+    return { data: data?.[0] ?? null, error };
   },
 
   updateCommissionRate: async (userId: string, commissionRate: number) => {
@@ -90,8 +90,8 @@ export const userQueries = {
         .from('users')
         .select('id')
         .eq('handle', handle)
-        .maybeSingle();
-      return { available: !fallbackData, error: null };
+        .limit(1);
+      return { available: !fallbackData || fallbackData.length === 0, error: null };
     }
     return { available: data === true, error: null };
   },
@@ -264,11 +264,28 @@ export const purchaseQueries = {
    *  3. Returns the payment_session_id for the Drop-in SDK
    */
   startCheckout: async (productId: string): Promise<{ data: CheckoutResult | null; error: Error | null }> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      return { data: null, error: new Error('Your session expired. Please sign in again and retry.') };
+    }
     const { data, error } = await supabase.functions.invoke<CheckoutResult>(
       'create-cashfree-order',
-      { body: { product_id: productId } }
+      { body: { product_id: productId },
+        headers: { Authorization: `Bearer ${session.access_token}` } }
     );
-    return { data: data ?? null, error: error as Error | null };
+    if (error) {
+      let message = (error as any).message as string;
+      try {
+        const body = await (error as any).context?.json?.();
+        if (body?.error) message = body.error;
+        else if (body?.message) message = body.message;
+      } catch { /* ignore */ }
+      if (message.toLowerCase().includes('invalid jwt')) {
+        return { data: null, error: new Error('Session invalid — please sign out and sign back in, then retry.') };
+      }
+      return { data: null, error: new Error(message) };
+    }
+    return { data: data ?? null, error: null };
   },
 
   /**

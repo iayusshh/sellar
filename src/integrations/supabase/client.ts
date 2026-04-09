@@ -17,7 +17,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 export type User = {
   id: string;
   email: string;
-  handle: string;
+  handle?: string | null;
   display_name: string;
   bio?: string;
   avatar_url?: string;
@@ -25,6 +25,7 @@ export type User = {
   social_links?: Record<string, string>;
   is_admin?: boolean;
   is_owner?: boolean;
+  is_creator?: boolean;
   commission_rate?: number;
   created_at: string;
   updated_at: string;

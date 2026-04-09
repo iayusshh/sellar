@@ -4,12 +4,12 @@ import type { User } from '@supabase/supabase-js';
 export interface AuthContextType {
   user: User | null;
   loading: boolean;
-  signUp: (
-    email: string,
-    password: string,
-    handle: string,
-    displayName: string
-  ) => Promise<{ error: any }>;
+  /** Create a general (buyer) account — no handle required */
+  signUp: (email: string, password: string, displayName: string) => Promise<{ error: any }>;
+  /** Create a brand-new creator account directly */
+  signUpCreator: (email: string, password: string, displayName: string, handle: string) => Promise<{ error: any }>;
+  /** Upgrade an existing general account to creator */
+  upgradeToCreator: (handle: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signInWithGoogle: () => Promise<{ error: any }>;
   resetPassword: (email: string) => Promise<{ error: any }>;
