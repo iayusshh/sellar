@@ -1,6 +1,8 @@
 // Shared Cashfree helpers — used by all three Edge Functions.
 // Secrets are injected via `supabase secrets set` — never hardcoded.
 
+/// <reference path="./edge-runtime.d.ts" />
+
 import { createClient } from "@supabase/supabase-js";
 
 // ── Cashfree API ─────────────────────────────────────────────────────────────

@@ -13,52 +13,160 @@ type Status = 'verifying' | 'completed' | 'failed' | 'unknown';
 
 const MAX_POLLS      = 6;
 const POLL_INTERVAL  = 2500; // ms between attempts
+const LAST_ORDER_STORAGE_KEY = 'sellar_last_cashfree_order_id';
+
+function normalizeOrderId(raw: string | null): string | null {
+  if (!raw) return null;
+  const value = raw.trim();
+  if (!value) return null;
+
+  const lowered = value.toLowerCase();
+  if (
+    value === '{order_id}' ||
+    value === '{cf_order_id}' ||
+    lowered === 'undefined' ||
+    lowered === 'null'
+  ) {
+    return null;
+  }
+
+  return value;
+}
+
+function isValidSellarOrderId(value: string | null): value is string {
+  if (!value) return false;
+  return /^sellar_[0-9a-fA-F-]{36}$/.test(value) || /^[0-9a-fA-F-]{36}$/.test(value);
+}
+
+function getFunctionsHttpStatus(error: unknown): number | null {
+  const status = (error as { context?: { status?: unknown } } | null)?.context?.status;
+  return typeof status === 'number' ? status : null;
+}
+
+async function invokeVerifyOrder(orderId: string, accessToken: string) {
+  return supabase.functions.invoke<{ status: string }>('verify-cashfree-order', {
+    body: { cashfree_order_id: orderId },
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+async function getFreshAccessToken(): Promise<string | null> {
+  const { data: { session } } = await supabase.auth.getSession();
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  const isSessionFresh =
+    !!session?.access_token &&
+    (!session.expires_at || session.expires_at > nowSeconds + 30);
+  if (isSessionFresh) return session?.access_token ?? null;
+
+  // Redirect flows can race with session hydration, or carry an expired access token.
+  // Force a refresh when the token is missing or near expiry.
+  const { data, error } = await supabase.auth.refreshSession();
+  if (error) {
+    console.warn('refreshSession failed on payment return:', error.message);
+  }
+
+  return data.session?.access_token ?? null;
+}
 
 export default function PaymentReturn() {
   const [searchParams]  = useSearchParams();
   const navigate        = useNavigate();
   const queryClient     = useQueryClient();
-  const orderId         = searchParams.get('order_id');
+  const orderIdFromUrlRaw = normalizeOrderId(
+    searchParams.get('cf_order') ??
+    searchParams.get('cf_order_id') ??
+    searchParams.get('order_id')
+  );
+  const orderIdFromUrl = isValidSellarOrderId(orderIdFromUrlRaw) ? orderIdFromUrlRaw : null;
+  const orderId = orderIdFromUrl ?? normalizeOrderId(localStorage.getItem(LAST_ORDER_STORAGE_KEY));
   const attempt         = useRef(0);
 
   const [status,  setStatus]  = useState<Status>('verifying');
   const [message, setMessage] = useState('Verifying your payment...');
 
   useEffect(() => {
+    if (orderIdFromUrl) {
+      localStorage.setItem(LAST_ORDER_STORAGE_KEY, orderIdFromUrl);
+    }
+
     if (!orderId) {
       setStatus('unknown');
-      setMessage('No order ID in URL.');
+      setMessage('No valid order ID in URL.');
       return;
     }
+
+    const resolvedOrderId = orderId;
 
     let cancelled = false;
 
     async function poll() {
       if (cancelled) return;
 
-      const { data: { session } } = await supabase.auth.getSession();
-      const { data, error } = await supabase.functions.invoke<{ status: string }>(
-        'verify-cashfree-order',
-        {
-          body:    { cashfree_order_id: orderId },
-          headers: session?.access_token
-            ? { Authorization: `Bearer ${session.access_token}` }
-            : undefined,
+      const accessToken = await getFreshAccessToken();
+      if (!accessToken) {
+        attempt.current += 1;
+        if (attempt.current >= MAX_POLLS) {
+          setStatus('unknown');
+          setMessage('Session expired during payment verification. Please sign in and check your library.');
+          return;
         }
-      );
+
+        setMessage(`Verifying... (${attempt.current + 1}/${MAX_POLLS})`);
+        setTimeout(poll, POLL_INTERVAL);
+        return;
+      }
+
+      let { data, error } = await invokeVerifyOrder(resolvedOrderId, accessToken);
+
+      // A provider redirect can race with token refresh. If gateway returned 401,
+      // force one immediate refresh + retry before counting this attempt as failed.
+      if (error && getFunctionsHttpStatus(error) === 401) {
+        const { data: refreshed, error: refreshErr } = await supabase.auth.refreshSession();
+        const retryToken = refreshed.session?.access_token;
+        if (!refreshErr && retryToken) {
+          const retry = await invokeVerifyOrder(resolvedOrderId, retryToken);
+          data = retry.data;
+          error = retry.error;
+        }
+      }
 
       if (cancelled) return;
 
       if (error) {
-        console.error('verify-cashfree-order:', error);
-        setStatus('failed');
-        setMessage('Could not verify payment. Contact support if you were charged.');
+        const httpStatus = getFunctionsHttpStatus(error);
+        console.error('verify-cashfree-order:', { httpStatus, error });
+
+        if (httpStatus === 401) {
+          setStatus('unknown');
+          setMessage('Session expired during payment verification. Please sign in and check your library.');
+          return;
+        }
+
+        if (httpStatus === 403) {
+          localStorage.removeItem(LAST_ORDER_STORAGE_KEY);
+          setStatus('unknown');
+          setMessage('Please sign in with the same account that started this purchase, then check your library.');
+          return;
+        }
+
+        attempt.current += 1;
+        if (attempt.current >= MAX_POLLS) {
+          setStatus('unknown');
+          setMessage(
+            'Could not verify payment yet. If you were charged, your purchase will appear automatically shortly.'
+          );
+          return;
+        }
+
+        setMessage(`Verifying... (${attempt.current + 1}/${MAX_POLLS})`);
+        setTimeout(poll, POLL_INTERVAL);
         return;
       }
 
       const s = data?.status ?? 'pending';
 
       if (s === 'completed') {
+        localStorage.removeItem(LAST_ORDER_STORAGE_KEY);
         queryClient.invalidateQueries({ queryKey: ['my-purchases'] });
         queryClient.invalidateQueries({ queryKey: ['wallet'] });
         setStatus('completed');
@@ -68,6 +176,7 @@ export default function PaymentReturn() {
       }
 
       if (s === 'failed') {
+        localStorage.removeItem(LAST_ORDER_STORAGE_KEY);
         setStatus('failed');
         setMessage('Payment was not completed.');
         return;
@@ -84,13 +193,13 @@ export default function PaymentReturn() {
         return;
       }
 
-      setMessage(`Verifying… (${attempt.current + 1}/${MAX_POLLS})`);
+      setMessage(`Verifying... (${attempt.current + 1}/${MAX_POLLS})`);
       setTimeout(poll, POLL_INTERVAL);
     }
 
     poll();
     return () => { cancelled = true; };
-  }, [orderId, navigate, queryClient]);
+  }, [orderId, orderIdFromUrl, navigate, queryClient]);
 
   return (
     <div className="min-h-screen flex flex-col">

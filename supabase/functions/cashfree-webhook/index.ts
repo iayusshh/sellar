@@ -5,6 +5,8 @@
 //
 // Deploy with: supabase functions deploy cashfree-webhook --no-verify-jwt
 
+/// <reference path="../_shared/edge-runtime.d.ts" />
+
 import {
   verifyWebhookSignature,
   getAdminClient,

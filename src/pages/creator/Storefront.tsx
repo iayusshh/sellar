@@ -34,6 +34,8 @@ const XIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
+const LAST_ORDER_STORAGE_KEY = 'sellar_last_cashfree_order_id';
+
 export default function Storefront() {
   const { handle } = useParams();
   const navigate = useNavigate();
@@ -87,6 +89,9 @@ export default function Storefront() {
       return;
     }
 
+    // Keep the latest order id so /payment/return can recover from malformed redirect params.
+    localStorage.setItem(LAST_ORDER_STORAGE_KEY, session.cashfree_order_id);
+
     // ── 2. Open Drop-in modal ─────────────────────────────────────────────
     setDropInOpen(true);
     let result;
@@ -122,6 +127,7 @@ export default function Storefront() {
     setBuyingProduct(null);
 
     if (confirmed) {
+      localStorage.removeItem(LAST_ORDER_STORAGE_KEY);
       queryClient.invalidateQueries({ queryKey: ['my-purchases'] });
       queryClient.invalidateQueries({ queryKey: ['wallet'] });
       toast.success('Payment successful! Check your library.');

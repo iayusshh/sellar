@@ -5,6 +5,8 @@
 // 3. Calls attach_cashfree_order RPC → stamps the Cashfree IDs on the row.
 // Returns { payment_session_id, cashfree_order_id, purchase_id } to the client.
 
+/// <reference path="../_shared/edge-runtime.d.ts" />
+
 import { createClient } from "@supabase/supabase-js";
 import {
   CASHFREE_BASE_URL,
@@ -20,18 +22,18 @@ Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return err("Method not allowed", 405);
 
   // ── 1. Authenticate buyer ────────────────────────────────────────────────
-  // Create a user-scoped client from the incoming Authorization header.
-  // Supabase's JWT middleware has already verified the token at this point,
-  // so we just need to hydrate the user object from it.
+  // Deno Edge Functions have no session storage, so auth.getUser() with no
+  // argument calls getSession() internally, finds nothing, and returns null.
+  // We must pass the JWT directly so auth-js validates it against Supabase Auth.
   const authHeader = req.headers.get("Authorization") ?? "";
   if (!authHeader.startsWith("Bearer ")) return err("Missing authorization", 401);
 
-  const userClient = createClient(
+  const jwt = authHeader.slice(7);
+  const anonClient = createClient(
     Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_ANON_KEY")!,
-    { global: { headers: { Authorization: authHeader } } }
+    Deno.env.get("SUPABASE_ANON_KEY")!
   );
-  const { data: { user }, error: authErr } = await userClient.auth.getUser();
+  const { data: { user }, error: authErr } = await anonClient.auth.getUser(jwt);
   if (authErr || !user) return err("Authentication required", 401);
 
   const buyerId    = user.id;
@@ -87,7 +89,8 @@ Deno.serve(async (req: Request) => {
           customer_name:  buyerName,
         },
         order_meta: {
-          return_url: `${siteUrl}/payment/return?order_id={order_id}`,
+          // Use a concrete order_id to avoid relying on gateway placeholder substitution.
+          return_url: `${siteUrl}/payment/return?cf_order=${encodeURIComponent(cfOrderId)}`,
           notify_url: `${supabaseUrl}/functions/v1/cashfree-webhook`,
         },
         order_note: `Sellar: ${product_title}`,
@@ -113,8 +116,11 @@ Deno.serve(async (req: Request) => {
     p_cf_session_id: cfData.payment_session_id,
   });
   if (attachErr) {
+    // Fatal: without the cashfree_order_id stamped on the row, verify-cashfree-order
+    // cannot look up the purchase → buyer would see 404 after payment completes.
     console.error("attach_cashfree_order failed:", attachErr.message);
-    // Non-fatal: purchase row exists; buyer can still proceed. Log and continue.
+    await admin.rpc("fail_purchase", { p_purchase_id: purchase_id });
+    return err("Failed to record payment session — please try again", 500);
   }
 
   // ── 6. Return session to client ──────────────────────────────────────────
