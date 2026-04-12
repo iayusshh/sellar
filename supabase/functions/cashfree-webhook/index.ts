@@ -10,9 +10,81 @@
 import {
   verifyWebhookSignature,
   getAdminClient,
+  CASHFREE_BASE_URL,
+  cashfreeHeaders,
   json,
   err,
 } from "../_shared/cashfree.ts";
+
+function collectStatuses(payload: unknown): string[] {
+  const statuses: string[] = [];
+
+  const pushStatus = (value: unknown) => {
+    if (typeof value === "string" && value.trim()) {
+      statuses.push(value.toUpperCase());
+    }
+  };
+
+  const fromRecord = (value: unknown) => {
+    if (!value || typeof value !== "object") return;
+    const rec = value as Record<string, unknown>;
+
+    pushStatus(rec.payment_status);
+    pushStatus(rec.status);
+
+    const nested = [rec.payments, rec.data, rec.cf_payments, rec.payment_details];
+    for (const item of nested) {
+      if (Array.isArray(item)) {
+        item.forEach(fromRecord);
+      } else {
+        fromRecord(item);
+      }
+    }
+  };
+
+  if (Array.isArray(payload)) payload.forEach(fromRecord);
+  else fromRecord(payload);
+
+  return [...new Set(statuses)];
+}
+
+async function isOrderPaid(cfOrderId: string): Promise<boolean> {
+  try {
+    const orderRes = await fetch(`${CASHFREE_BASE_URL}/orders/${cfOrderId}`, {
+      method: "GET",
+      headers: cashfreeHeaders(),
+    });
+    if (orderRes.ok) {
+      const order = await orderRes.json() as Record<string, unknown>;
+      const orderStatus = typeof order.order_status === "string"
+        ? order.order_status.toUpperCase()
+        : "";
+      if (orderStatus === "PAID" || orderStatus === "SUCCESS") return true;
+    }
+  } catch {
+    // Fallback to payments endpoint below.
+  }
+
+  try {
+    const paymentsRes = await fetch(`${CASHFREE_BASE_URL}/orders/${cfOrderId}/payments`, {
+      method: "GET",
+      headers: cashfreeHeaders(),
+    });
+    if (!paymentsRes.ok) return false;
+
+    const payload = await paymentsRes.json() as unknown;
+    const statuses = collectStatuses(payload);
+    return statuses.some((status) =>
+      status === "SUCCESS" ||
+      status === "PAID" ||
+      status === "CHARGED" ||
+      status === "CAPTURED" ||
+      status === "AUTHORIZED"
+    );
+  } catch {
+    return false;
+  }
+}
 
 Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return err("Method not allowed", 405);
@@ -30,10 +102,11 @@ Deno.serve(async (req: Request) => {
     return err("Webhook secret not configured", 500);
   }
 
-  const valid = await verifyWebhookSignature(rawBody, timestamp, signature, secret);
-  if (!valid) {
-    console.warn("Webhook signature/timestamp verification failed");
-    return err("Unauthorized", 401);
+  const signatureValid = await verifyWebhookSignature(rawBody, timestamp, signature, secret);
+  if (!signatureValid) {
+    // Do not return 401 repeatedly; proceed in a degraded mode where only
+    // success events confirmed via Cashfree API are acted upon.
+    console.warn("Webhook signature/timestamp verification failed; continuing in degraded mode");
   }
 
   // ── 3. Parse payload ─────────────────────────────────────────────────────
@@ -72,6 +145,14 @@ Deno.serve(async (req: Request) => {
   // ── 5. Dispatch on event type ────────────────────────────────────────────
   switch (eventType) {
     case "PAYMENT_SUCCESS_WEBHOOK": {
+      if (!signatureValid) {
+        const paid = await isOrderPaid(cfOrderId);
+        if (!paid) {
+          console.warn("Unsigned success webhook not confirmed by Cashfree API:", cfOrderId);
+          break;
+        }
+      }
+
       if (purchase.status === "completed") {
         console.log("Webhook: already settled (idempotent):", purchase.id);
         break;
@@ -90,6 +171,11 @@ Deno.serve(async (req: Request) => {
 
     case "PAYMENT_FAILED_WEBHOOK":
     case "PAYMENT_USER_DROPPED_WEBHOOK": {
+      if (!signatureValid) {
+        console.warn("Ignoring unsigned failure webhook:", eventType, cfOrderId);
+        break;
+      }
+
       const { error: failErr } = await admin.rpc("fail_purchase", {
         p_purchase_id: purchase.id,
       });

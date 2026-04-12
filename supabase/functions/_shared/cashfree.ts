@@ -32,6 +32,22 @@ export function cashfreeHeaders(): Record<string, string> {
 
 const WEBHOOK_TOLERANCE_SECS = 300; // 5 minutes
 
+function parseWebhookTimestampSeconds(timestamp: string): number | null {
+  const trimmed = timestamp.trim();
+  if (!trimmed) return null;
+
+  const numeric = Number(trimmed);
+  if (!Number.isNaN(numeric)) {
+    const seconds = numeric > 1e12 ? Math.floor(numeric / 1000) : Math.floor(numeric);
+    return Number.isFinite(seconds) ? seconds : null;
+  }
+
+  const parsedMs = Date.parse(trimmed);
+  if (!Number.isNaN(parsedMs)) return Math.floor(parsedMs / 1000);
+
+  return null;
+}
+
 export async function verifyWebhookSignature(
   rawBody:   string,
   timestamp: string,
@@ -39,9 +55,9 @@ export async function verifyWebhookSignature(
   secret:    string
 ): Promise<boolean> {
   // Timestamp freshness check (replay protection)
-  const ts  = parseInt(timestamp, 10);
+  const ts  = parseWebhookTimestampSeconds(timestamp);
   const now = Math.floor(Date.now() / 1000);
-  if (isNaN(ts) || Math.abs(now - ts) > WEBHOOK_TOLERANCE_SECS) {
+  if (ts === null || Math.abs(now - ts) > WEBHOOK_TOLERANCE_SECS) {
     console.warn(`Webhook timestamp out of tolerance: ts=${ts}, now=${now}`);
     return false;
   }
