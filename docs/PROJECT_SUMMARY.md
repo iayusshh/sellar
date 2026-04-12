@@ -70,7 +70,7 @@ Sellar/
 │   └── .env                       # Your environment variables
 ├── index.html
 ├── README.md                      # Comprehensive documentation
-└── supabase-schema.sql            # Database schema
+└── supabase/sql/init/supabase-schema.sql  # Database schema
 ```
 
 ## 🎨 Features Implemented
@@ -156,7 +156,7 @@ npm run lint
 1. **Create a Supabase project** at https://supabase.com
 2. **Run the database schema**:
    - Go to SQL Editor in Supabase dashboard
-   - Copy and paste content from `supabase-schema.sql`
+   - Copy and paste content from `supabase/sql/init/supabase-schema.sql`
    - Execute the SQL
 
 3. **Get your credentials**:
@@ -245,7 +245,7 @@ Remember to set environment variables in your deployment platform!
 - All pages use mock data - they work without Supabase configured
 - Explore the code structure - it's well organized and commented
 - Check `README.md` for detailed documentation
-- See `supabase-schema.sql` for database setup
+- See `supabase/sql/init/supabase-schema.sql` for database setup
 
 ## 🐛 Troubleshooting
 

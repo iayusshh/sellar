@@ -185,7 +185,7 @@ export default function SupabaseTest() {
                           Some tests failed. Common solutions:
                         </p>
                         <ul className="text-sm text-orange-700 dark:text-orange-300 space-y-1 list-disc list-inside">
-                          <li>Make sure you ran the SQL from <code>supabase-init.sql</code></li>
+                          <li>Make sure you ran the SQL from <code>supabase/sql/init/supabase-init.sql</code></li>
                           <li>Check your .env file has correct credentials</li>
                           <li>Verify your Supabase project is active</li>
                           <li>Check the SQL Editor in Supabase for errors</li>

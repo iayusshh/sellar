@@ -1,55 +1,91 @@
 # Sellar
 
-Creator-first monetization platform (Cosmofeed/Graphy-style) — **not a marketplace**.
+Creator-first monetization platform (Cosmofeed/Graphy style), focused on creator storefronts, wallet payouts, and digital product sales.
 
-## Quickstart (local)
+## Current Workflow
 
-1. Configure env
+- Active frontend runtime: Vite + React app in `src/`
+- Supabase edge functions: `supabase/functions/`
+- Reference/parallel server-side code: `app/`, `lib/`, `prisma/`
+
+The developer workflow remains the same: run the app with `npm run dev`.
+
+## Quickstart (Local)
+
+1. Install dependencies
+
+```bash
+npm install
+```
+
+2. Create local env file
 
 ```bash
 cp .env.example .env
 ```
 
-Create a Postgres database (Neon/Supabase/Railway/etc.) and paste its connection string into `DATABASE_URL`.
+3. Add your Supabase credentials in `.env`
 
-2. Run DB migrations + seed
-
-```bash
-npx prisma db push
-npm run seed
+```env
+VITE_SUPABASE_URL=https://your-project-ref.supabase.co
+VITE_SUPABASE_ANON_KEY=your_anon_key
+VITE_CASHFREE_MODE=sandbox
+VITE_SITE_URL=http://localhost:8080
 ```
 
-3. Start the app
+4. Initialize Supabase schema
+
+- Run `supabase/sql/init/supabase-init.sql` in Supabase SQL Editor.
+- Optional sample records: run `supabase/sql/init/seed-data.sql`.
+
+5. Start development server
 
 ```bash
 npm run dev
 ```
 
-Then open http://localhost:3000
+Open http://localhost:8080
 
-## Optional: Postgres
+## Useful Scripts
 
-If you want a local Postgres instance, use the included docker-compose and point `DATABASE_URL` to it.
+```bash
+npm run dev              # Start local app
+npm run build            # Production build
+npm run preview          # Preview built app
+npm run lint             # Lint codebase
+npm run type-check       # TypeScript checks
+npm run test             # Run Vitest suite
+npm run supabase:setup   # Guided Supabase setup helper
+npm run supabase:verify  # Verify Supabase tables and connectivity
+```
 
-## Deploy (Vercel)
+## Restructured Folders
 
-1. Push to GitHub.
-2. Create a hosted Postgres database and set `DATABASE_URL` in Vercel.
-3. Set env vars in Vercel:
+To keep the root clean without changing runtime behavior, docs/scripts/sql files are now grouped:
 
-- `DATABASE_URL`
-- `NEXTAUTH_SECRET`
-- `NEXTAUTH_URL` (set to your Vercel domain)
-- `PLATFORM_COMMISSION_RATE` (optional)
-- Stripe vars if you want real checkout: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
+- `docs/`:
+	- `docs/masterplan.md`
+	- `docs/PROJECT_SUMMARY.md`
+	- `docs/SUPABASE_SETUP.md`
+- `scripts/`:
+	- `scripts/setup-supabase.sh`
+	- `scripts/verify-supabase.js`
+- `supabase/sql/init/`:
+	- `supabase/sql/init/supabase-init.sql`
+	- `supabase/sql/init/supabase-schema.sql`
+	- `supabase/sql/init/seed-data.sql`
+- `supabase/sql/migrations/`:
+	- all incremental SQL migration/patch scripts
 
-This repo includes a `vercel-build` script that runs `prisma migrate deploy` during build.
+## Project Map
 
-Note: `vercel-build` will run `prisma db push` only if one of `DATABASE_URL`, `POSTGRES_PRISMA_URL`, or `POSTGRES_URL` is present; otherwise it will skip the DB step and still build.
+- `src/`: active Vite application (routes, UI, contexts, hooks)
+- `supabase/functions/`: edge functions for Cashfree order lifecycle
+- `supabase/sql/`: SQL setup and migrations
+- `app/`: Next.js route tree kept for ongoing migration/reference
+- `docs/`: setup and product documentation
 
-## Repo layout
+## Notes
 
-- app/: Next.js app routes
-- lib/: server utilities (Prisma, Stripe, wallet, email)
-- prisma/: schema + migrations + seed
-- masterplan.md: product blueprint
+- If Supabase checks fail in UI, verify you ran `supabase/sql/init/supabase-init.sql`.
+- Keep real secrets in Supabase secrets or local `.env` files only.

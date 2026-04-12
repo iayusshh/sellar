@@ -3,14 +3,17 @@
 # Supabase Setup Script for Sellar
 # This script helps you set up your Supabase database
 
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
+
 echo "🚀 Sellar - Supabase Setup"
 echo "======================================"
 echo ""
 
 # Check if .env file exists
-if [ ! -f .env ]; then
+if [ ! -f "${PROJECT_ROOT}/.env" ]; then
     echo "❌ .env file not found. Creating from template..."
-    cp .env.example .env
+    cp "${PROJECT_ROOT}/.env.example" "${PROJECT_ROOT}/.env"
     echo "✅ Created .env file"
 else
     echo "✅ .env file exists"
@@ -31,20 +34,20 @@ echo "   VITE_SUPABASE_URL=your_project_url"
 echo "   VITE_SUPABASE_ANON_KEY=your_anon_key"
 echo ""
 echo "6. Go to SQL Editor in Supabase dashboard"
-echo "7. Copy and run the SQL from 'supabase-schema.sql'"
+echo "7. Copy and run the SQL from 'supabase/sql/init/supabase-init.sql'"
 echo ""
 
 read -p "Press Enter when you're ready to open the .env file for editing..."
 
 # Open .env file in default editor
 if command -v code &> /dev/null; then
-    code .env
+    code "${PROJECT_ROOT}/.env"
 elif command -v nano &> /dev/null; then
-    nano .env
+    nano "${PROJECT_ROOT}/.env"
 elif command -v vim &> /dev/null; then
-    vim .env
+    vim "${PROJECT_ROOT}/.env"
 else
-    open .env
+    open "${PROJECT_ROOT}/.env"
 fi
 
 echo ""

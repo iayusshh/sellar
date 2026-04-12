@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "supabase:setup": "bash scripts/setup-supabase.sh",
+    "supabase:verify": "node scripts/verify-supabase.js",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint .",
