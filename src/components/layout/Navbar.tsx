@@ -41,7 +41,7 @@ export default function Navbar() {
           </Link>
 
           {/* Desktop Navigation — true center */}
-          <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center gap-6">
+          <div className="hidden lg:flex items-center gap-8 ml-10 shrink-0">
             <Link to="/" className="text-sm font-medium hover:text-accent transition-colors">
               Home
             </Link>
@@ -62,7 +62,7 @@ export default function Navbar() {
           <div className="flex-1" />
 
           {/* Desktop Auth Buttons */}
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden md:flex items-center gap-4 lg:gap-6 min-w-0">
             {user ? (
               isCreator ? (
                 /* Creator is logged in */
@@ -73,7 +73,7 @@ export default function Navbar() {
                       Creator Dashboard
                     </Link>
                   </Button>
-                  <span className="text-sm text-muted-foreground">{user.email}</span>
+                  <span className="hidden lg:block max-w-[180px] truncate px-1 text-sm text-muted-foreground">{user.email}</span>
                   <Button variant="ghost" size="sm" onClick={() => signOut()}>
                     <LogOut className="mr-2 w-4 h-4" />
                     Sign Out
@@ -94,7 +94,7 @@ export default function Navbar() {
                       Become a Creator
                     </Link>
                   </Button>
-                  <span className="text-sm text-muted-foreground">{user.email}</span>
+                  <span className="hidden lg:block max-w-[180px] truncate px-1 text-sm text-muted-foreground">{user.email}</span>
                   <Button variant="ghost" size="sm" onClick={() => signOut()}>
                     <LogOut className="mr-2 w-4 h-4" />
                     Sign Out

@@ -249,56 +249,69 @@ export const adminQueries = {
 
 // Purchase queries
 
-export interface CheckoutResult {
+export interface CheckoutSession {
   payment_session_id: string;
   cashfree_order_id: string;
   purchase_id: string;
 }
 
+type PaymentStatus = 'completed' | 'pending' | 'failed';
+
 export const purchaseQueries = {
   /**
-   * Starts a real payment checkout.
-   * Calls the create-cashfree-order Edge Function which:
-   *  1. Creates a pending purchase row in DB
-   *  2. Creates a Cashfree order via their API
-   *  3. Returns the payment_session_id for the Drop-in SDK
+   * Creates or reuses a pending purchase row, then mints a Cashfree payment
+   * session. Returns the session ID needed to open the Drop-in modal.
    */
-  startCheckout: async (productId: string): Promise<{ data: CheckoutResult | null; error: Error | null }> => {
+  startCheckout: async (productId: string): Promise<{ data: CheckoutSession | null; error: Error | null }> => {
+    // supabase.functions.invoke uses the FunctionsClient's internal Authorization header,
+    // which is initialised with the anon key and only updated when onAuthStateChange fires.
+    // That event may not have fired yet (race on first load, or after a silent token refresh),
+    // so the functions client can silently send the anon key instead of the user JWT —
+    // causing the Edge Function's getUser() call to return null → 401.
+    //
+    // Fix: read the session directly via getSession(), which reads from localStorage and
+    // auto-refreshes if the access_token is expired, then pass the token explicitly.
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.access_token) {
-      return { data: null, error: new Error('Your session expired. Please sign in again and retry.') };
+      return { data: null, error: new Error('Please sign in to continue.') };
     }
-    const { data, error } = await supabase.functions.invoke<CheckoutResult>(
+
+    const { data, error } = await supabase.functions.invoke<CheckoutSession>(
       'create-cashfree-order',
-      { body: { product_id: productId },
-        headers: { Authorization: `Bearer ${session.access_token}` } }
+      {
+        body:    { product_id: productId },
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      }
     );
+
     if (error) {
       let message = (error as any).message as string;
       try {
         const body = await (error as any).context?.json?.();
         if (body?.error) message = body.error;
-        else if (body?.message) message = body.message;
       } catch { /* ignore */ }
-      if (message.toLowerCase().includes('invalid jwt')) {
-        return { data: null, error: new Error('Session invalid — please sign out and sign back in, then retry.') };
-      }
       return { data: null, error: new Error(message) };
     }
+
     return { data: data ?? null, error: null };
   },
 
   /**
-   * Reconciliation fast-path: verify payment status directly with Cashfree.
-   * Called after the Drop-in SDK's onSuccess callback and from the /payment/return page.
+   * Reconciliation fast-path — queries Cashfree directly for the order status.
+   * Called after Drop-in onSuccess and from the /payment/return redirect page.
    */
-  verifyOrder: async (cashfreeOrderId: string): Promise<{ status: 'completed' | 'pending' | 'failed' }> => {
+  verifyOrder: async (cashfreeOrderId: string): Promise<{ status: PaymentStatus }> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const authHeader = session?.access_token
+      ? { Authorization: `Bearer ${session.access_token}` }
+      : undefined;
+
     const { data, error } = await supabase.functions.invoke<{ status: string }>(
       'verify-cashfree-order',
-      { body: { cashfree_order_id: cashfreeOrderId } }
+      { body: { cashfree_order_id: cashfreeOrderId }, headers: authHeader }
     );
     if (error) throw error;
-    return { status: (data?.status ?? 'pending') as 'completed' | 'pending' | 'failed' };
+    return { status: (data?.status ?? 'pending') as PaymentStatus };
   },
 
   getMyPurchases: async () => {

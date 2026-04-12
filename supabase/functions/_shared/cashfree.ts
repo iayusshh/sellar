@@ -1,94 +1,107 @@
-// Shared Cashfree helpers for Supabase Edge Functions (Deno)
-// All secrets are injected via `supabase secrets set` — never hardcoded.
+// Shared Cashfree helpers — used by all three Edge Functions.
+// Secrets are injected via `supabase secrets set` — never hardcoded.
 
 import { createClient } from "@supabase/supabase-js";
 
-// ─── Cashfree base URL ──────────────────────────────────────────────────────
+// ── Cashfree API ─────────────────────────────────────────────────────────────
 
 export const CASHFREE_BASE_URL =
   Deno.env.get("CASHFREE_ENV") === "production"
     ? "https://api.cashfree.com/pg"
     : "https://sandbox.cashfree.com/pg";
 
-// ─── Cashfree request headers ───────────────────────────────────────────────
-
 export function cashfreeHeaders(): Record<string, string> {
-  const appId = Deno.env.get("CASHFREE_APP_ID");
+  const appId     = Deno.env.get("CASHFREE_APP_ID");
   const secretKey = Deno.env.get("CASHFREE_SECRET_KEY");
   if (!appId || !secretKey) {
-    throw new Error("CASHFREE_APP_ID / CASHFREE_SECRET_KEY not set");
+    throw new Error("CASHFREE_APP_ID / CASHFREE_SECRET_KEY not configured");
   }
   return {
-    "Content-Type": "application/json",
-    "x-api-version": "2023-08-01",
-    "x-client-id": appId,
+    "Content-Type":    "application/json",
+    "x-api-version":  "2023-08-01",
+    "x-client-id":    appId,
     "x-client-secret": secretKey,
   };
 }
 
-// ─── HMAC-SHA256 webhook signature verification ─────────────────────────────
-// Cashfree signs webhooks with: HMAC-SHA256(timestamp + rawBody, webhookSecret)
-// Header: x-webhook-signature (base64-encoded), x-webhook-timestamp
+// ── Webhook signature verification ──────────────────────────────────────────
+// Cashfree signs with HMAC-SHA256(timestamp + rawBody, secret).
+// We also enforce a 5-minute replay window to prevent replayed webhooks.
+
+const WEBHOOK_TOLERANCE_SECS = 300; // 5 minutes
 
 export async function verifyWebhookSignature(
-  rawBody: string,
+  rawBody:   string,
   timestamp: string,
   signature: string,
-  secret: string
+  secret:    string
 ): Promise<boolean> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(timestamp + rawBody);
-  const keyData = encoder.encode(secret);
+  // Timestamp freshness check (replay protection)
+  const ts  = parseInt(timestamp, 10);
+  const now = Math.floor(Date.now() / 1000);
+  if (isNaN(ts) || Math.abs(now - ts) > WEBHOOK_TOLERANCE_SECS) {
+    console.warn(`Webhook timestamp out of tolerance: ts=${ts}, now=${now}`);
+    return false;
+  }
 
+  const encoder = new TextEncoder();
   const key = await crypto.subtle.importKey(
     "raw",
-    keyData,
+    encoder.encode(secret),
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign"]
   );
-
-  const signatureBytes = await crypto.subtle.sign("HMAC", key, data);
-  const computedBase64 = btoa(
-    String.fromCharCode(...new Uint8Array(signatureBytes))
+  const signatureBytes = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    encoder.encode(timestamp + rawBody)
   );
-
-  return computedBase64 === signature;
+  const computed = btoa(String.fromCharCode(...new Uint8Array(signatureBytes)));
+  return computed === signature;
 }
 
-// ─── Supabase admin client (bypasses RLS) ───────────────────────────────────
+// ── Supabase admin client (bypasses RLS) ─────────────────────────────────────
 
-export function getSupabaseAdminClient() {
-  const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (!supabaseUrl || !serviceRoleKey) {
-    throw new Error("SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not set");
+export function getAdminClient() {
+  const url     = Deno.env.get("SUPABASE_URL");
+  const svcRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !svcRole) {
+    throw new Error("SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not configured");
   }
-  return createClient(supabaseUrl, serviceRoleKey, {
-    auth: { persistSession: false },
-  });
+  return createClient(url, svcRole, { auth: { persistSession: false } });
 }
 
-// ─── CORS headers (required for browser-invoked functions) ──────────────────
+// ── CORS ─────────────────────────────────────────────────────────────────────
+// Restrict to your site origin in production by setting SITE_URL.
+// Falls back to '*' for local development.
 
-export const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-
-export function corsResponse(status = 204): Response {
-  return new Response(null, { status, headers: CORS_HEADERS });
+function corsOrigin(): string {
+  const siteUrl = Deno.env.get("SITE_URL");
+  return siteUrl && siteUrl !== "http://localhost:5173" ? siteUrl : "*";
 }
 
-export function jsonResponse(body: unknown, status = 200): Response {
+function corsHeaders(): Record<string, string> {
+  return {
+    "Access-Control-Allow-Origin":  corsOrigin(),
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+  };
+}
+
+// ── Response helpers ─────────────────────────────────────────────────────────
+
+export function corsResponse(): Response {
+  return new Response(null, { status: 204, headers: corsHeaders() });
+}
+
+export function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+    headers: { ...corsHeaders(), "Content-Type": "application/json" },
   });
 }
 
-export function errorResponse(message: string, status = 400): Response {
-  return jsonResponse({ error: message }, status);
+export function err(message: string, status = 400): Response {
+  return json({ error: message }, status);
 }

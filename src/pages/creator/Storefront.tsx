@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { useProfileByHandle, usePublicProducts, useStartCheckout, useProfile } from '@/integrations/supabase/hooks';
 import { purchaseQueries } from '@/integrations/supabase/queries';
-import { openCashfreeCheckout } from '@/lib/cashfree';
+import { openCheckout } from '@/lib/cashfree';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { formatCurrency } from '@/lib/currency';
@@ -74,100 +74,61 @@ export default function Storefront() {
   const handleConfirmPurchase = async () => {
     if (!buyingProduct || !user) return;
 
-    // ── Step 1: Create a Cashfree order via Edge Function ─────────────────
-    let paymentSessionId: string;
-    let cashfreeOrderId: string;
-    try {
-      const { data, error } = await startCheckout.mutateAsync(buyingProduct.id);
-      if (error) {
-        // FunctionsHttpError.context is the raw Response — extract the real message
-        let message = (error as any).message as string;
-        try {
-          const ctx = (error as any).context;
-          if (ctx && typeof ctx.json === 'function') {
-            const body = await ctx.json();
-            console.error('[checkout] edge fn error body:', body);
-            if (body?.error) message = body.error;
-            else message = JSON.stringify(body);
-          } else {
-            console.error('[checkout] error (no context):', error);
-          }
-        } catch (parseErr) {
-          console.error('[checkout] could not parse error body:', parseErr);
-        }
-        throw new Error(message);
-      }
-      if (!data) throw new Error('No checkout session returned');
-      paymentSessionId = data.payment_session_id;
-      cashfreeOrderId = data.cashfree_order_id;
-    } catch (e: any) {
-      const msg: string = e.message ?? '';
-      if (msg.toLowerCase().includes('sign out and sign back in')) {
+    // ── 1. Create Cashfree order ──────────────────────────────────────────
+    const { data: session, error: sessionErr } = await startCheckout.mutateAsync(buyingProduct.id);
+    if (sessionErr || !session) {
+      const msg = sessionErr?.message ?? 'Could not start checkout. Please try again.';
+      if (msg.toLowerCase().includes('sign in')) {
         toast.error(msg);
-        return;
-      }
-      if (msg.toLowerCase().includes('session expired') || msg.toLowerCase().includes('please sign in')) {
-        toast.error('Session expired. Please sign in again.');
         navigate(`/auth/signin?redirect=/${handle}`);
         return;
       }
-      toast.error(msg || 'Could not start checkout. Please try again.');
+      toast.error(msg);
       return;
     }
 
-    // ── Step 2: Open Cashfree Drop-in modal ───────────────────────────────
+    // ── 2. Open Drop-in modal ─────────────────────────────────────────────
     setDropInOpen(true);
-    let dropInResult;
+    let result;
     try {
-      dropInResult = await openCashfreeCheckout(paymentSessionId);
-    } catch (e: any) {
+      result = await openCheckout(session.payment_session_id);
+    } catch {
       setDropInOpen(false);
       toast.error('Payment could not be opened. Please try again.');
       return;
     }
     setDropInOpen(false);
 
-    if (dropInResult?.error) {
-      // User cancelled or payment failed inside the Drop-in
-      toast.error(dropInResult.error.message || 'Payment was not completed.');
+    if (result?.error) {
+      toast.error(result.error.message || 'Payment was not completed.');
       return;
     }
 
-    // ── Step 3: Reconciliation fast-path (belt-and-suspenders) ───────────
-    // Verify with Cashfree directly so we don't depend on webhook timing.
+    // ── 3. Reconciliation fast-path ───────────────────────────────────────
+    // Verify directly with Cashfree so the buyer doesn't wait on the webhook.
     toast.loading('Confirming payment...', { id: 'payment-confirm' });
-    const MAX_POLLS = 3;
     let confirmed = false;
 
-    for (let attempt = 0; attempt < MAX_POLLS; attempt++) {
+    for (let attempt = 0; attempt < 3; attempt++) {
       try {
-        const { status } = await purchaseQueries.verifyOrder(cashfreeOrderId);
-        if (status === 'completed') {
-          confirmed = true;
-          break;
-        }
+        const { status } = await purchaseQueries.verifyOrder(session.cashfree_order_id);
+        if (status === 'completed') { confirmed = true; break; }
         if (status === 'failed') break;
-      } catch {
-        // Network glitch — keep polling
-      }
-      if (attempt < MAX_POLLS - 1) {
-        await new Promise((res) => setTimeout(res, 1500));
-      }
+      } catch { /* network glitch — keep polling */ }
+      if (attempt < 2) await new Promise(r => setTimeout(r, 1500));
     }
 
     toast.dismiss('payment-confirm');
+    setBuyingProduct(null);
 
     if (confirmed) {
       queryClient.invalidateQueries({ queryKey: ['my-purchases'] });
       queryClient.invalidateQueries({ queryKey: ['wallet'] });
-      queryClient.invalidateQueries({ queryKey: ['admin'] });
       toast.success('Payment successful! Check your library.');
-      setBuyingProduct(null);
       navigate('/library');
     } else {
-      // Webhook may still be in-flight — send to return page which polls further
-      setBuyingProduct(null);
-      navigate(`/payment/return?order_id=${cashfreeOrderId}`);
+      // Webhook may still be in-flight — return page polls further
+      navigate(`/payment/return?order_id=${session.cashfree_order_id}`);
     }
   };
 
