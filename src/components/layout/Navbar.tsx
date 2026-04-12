@@ -51,6 +51,9 @@ export default function Navbar() {
             >
               Features
             </button>
+            <Link to="/top-creators" className="text-sm font-medium hover:text-accent transition-colors">
+              Top Creators
+            </Link>
             {isAdmin && (
               <Link to="/admin/portal" className="text-sm font-medium hover:text-accent transition-colors">
                 Admin
@@ -144,6 +147,13 @@ export default function Navbar() {
               >
                 Features
               </button>
+              <Link
+                to="/top-creators"
+                className="text-sm font-medium hover:text-accent transition-colors"
+                onClick={() => setIsOpen(false)}
+              >
+                Top Creators
+              </Link>
               {isAdmin && (
                 <Link
                   to="/admin/portal"

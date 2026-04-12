@@ -81,6 +81,33 @@ export const userQueries = {
     return { data, error };
   },
 
+  getFeaturedCreators: async () => {
+    const { data, error } = await supabase.rpc('get_featured_creators');
+    return { data: (data ?? []) as User[], error };
+  },
+
+  toggleFeatured: async (userId: string, isFeatured: boolean) => {
+    const updates: Partial<User> = { is_featured: isFeatured };
+    if (!isFeatured) updates.featured_order = null;
+    const { data, error } = await supabase
+      .from('users')
+      .update(updates)
+      .eq('id', userId)
+      .select()
+      .limit(1);
+    return { data: (data?.[0] ?? null) as User | null, error };
+  },
+
+  updateFeaturedOrder: async (userId: string, order: number | null) => {
+    const { data, error } = await supabase
+      .from('users')
+      .update({ featured_order: order })
+      .eq('id', userId)
+      .select()
+      .limit(1);
+    return { data: (data?.[0] ?? null) as User | null, error };
+  },
+
   checkHandleAvailability: async (handle: string) => {
     const { data, error } = await supabase
       .rpc('check_handle_available', { handle_to_check: handle });

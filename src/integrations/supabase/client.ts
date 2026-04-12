@@ -26,6 +26,8 @@ export type User = {
   is_admin?: boolean;
   is_owner?: boolean;
   is_creator?: boolean;
+  is_featured?: boolean;
+  featured_order?: number | null;
   commission_rate?: number;
   created_at: string;
   updated_at: string;

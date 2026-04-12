@@ -13,6 +13,7 @@ import ForgotPassword from '@/pages/auth/ForgotPassword';
 import ResetPassword from '@/pages/auth/ResetPassword';
 import VerifyEmail from '@/pages/auth/VerifyEmail';
 import BecomeCreator from '@/pages/BecomeCreator';
+import TopCreators from '@/pages/TopCreators';
 import Dashboard from '@/pages/creator/Dashboard';
 import Products from '@/pages/creator/Products';
 import Wallet from '@/pages/creator/Wallet';
@@ -40,6 +41,7 @@ function App() {
         <Route path="/auth/reset-password" element={<ResetPassword />} />
         <Route path="/auth/verify-email" element={<VerifyEmail />} />
         <Route path="/become-a-creator" element={<BecomeCreator />} />
+        <Route path="/top-creators" element={<TopCreators />} />
         <Route path="/test-supabase" element={<SupabaseTest />} />
 
         {/* General (buyer) only */}

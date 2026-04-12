@@ -4,6 +4,7 @@ import Hero from '@/components/landing/Hero';
 import Features from '@/components/landing/Features';
 import WalletPreview from '@/components/landing/WalletPreview';
 import FeatureShowcase from '@/components/landing/FeatureShowcase';
+import FeaturedCreators from '@/components/landing/FeaturedCreators';
 import CTA from '@/components/landing/CTA';
 
 export default function Index() {
@@ -15,6 +16,7 @@ export default function Index() {
         <Features />
         <WalletPreview />
         <FeatureShowcase />
+        <FeaturedCreators />
         <CTA />
       </main>
       <Footer />

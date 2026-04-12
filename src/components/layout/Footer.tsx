@@ -28,6 +28,11 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
+                <Link to="/top-creators" className="hover:text-accent transition-colors">
+                  Top Creators
+                </Link>
+              </li>
+              <li>
                 <Link to="/creator/dashboard" className="hover:text-accent transition-colors">
                   Dashboard
                 </Link>
@@ -49,13 +54,13 @@ export default function Footer() {
           <div>
             <h3 className="font-semibold mb-4">Connect</h3>
             <div className="flex gap-4">
-              <a href="#" className="hover:text-accent transition-colors" aria-label="Twitter">
+              <a href="https://twitter.com/iayusshh" className="hover:text-accent transition-colors" aria-label="Twitter">
                 <Twitter className="w-5 h-5" />
               </a>
-              <a href="#" className="hover:text-accent transition-colors" aria-label="GitHub">
+              <a href="https://github.com/iayusshh/sellar" className="hover:text-accent transition-colors" aria-label="GitHub">
                 <Github className="w-5 h-5" />
               </a>
-              <a href="#" className="hover:text-accent transition-colors" aria-label="Email">
+              <a href="mailto:ayush.doing@gmail.com" className="hover:text-accent transition-colors" aria-label="Email">
                 <Mail className="w-5 h-5" />
               </a>
             </div>

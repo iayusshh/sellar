@@ -22,9 +22,10 @@ import {
   User,
   Store,
   Trash2,
+  Star,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAdminData, useUpdateCommission, useUpdateTransaction, useRemoveCreator } from '@/integrations/supabase/hooks';
+import { useAdminData, useUpdateCommission, useUpdateTransaction, useRemoveCreator, useToggleFeatured, useUpdateFeaturedOrder } from '@/integrations/supabase/hooks';
 import { formatCurrency } from '@/lib/currency';
 import { formatTimeAgo } from '@/lib/date';
 import { toast } from 'sonner';
@@ -74,6 +75,8 @@ export default function AdminPortal() {
   const updateCommission = useUpdateCommission();
   const updateTransaction = useUpdateTransaction();
   const removeCreator = useRemoveCreator();
+  const toggleFeatured = useToggleFeatured();
+  const updateFeaturedOrder = useUpdateFeaturedOrder();
   const [removingCreator, setRemovingCreator] = useState<string | null>(null);
 
   const { users, wallets, transactions, products, clients, purchases, visits } =
@@ -88,6 +91,7 @@ export default function AdminPortal() {
     };
 
   const creators = users.filter((u: any) => !u.is_admin && !u.is_owner);
+  const featuredCount = creators.filter((c: any) => c.is_featured).length;
   const walletsByUser = new Map(wallets.map((w: any) => [w.user_id, w]));
 
   const creatorMetrics = useMemo(() => {
@@ -452,7 +456,12 @@ export default function AdminPortal() {
                     {(item.creator.display_name || '?')[0].toUpperCase()}
                   </div>
                   <div>
-                    <p className="text-white font-semibold">{item.creator.display_name}</p>
+                    <p className="text-white font-semibold flex items-center gap-1.5">
+                      {item.creator.display_name}
+                      {item.creator.is_featured && (
+                        <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400 flex-shrink-0" />
+                      )}
+                    </p>
                     <p className="text-sm text-slate-400">@{item.creator.handle} • {item.creator.email}</p>
                   </div>
                 </div>
@@ -593,6 +602,62 @@ export default function AdminPortal() {
                             )}
                           </div>
                         )}
+                      </div>
+
+                      {/* Feature on Top Creators */}
+                      <div className="bg-slate-800/30 rounded-xl p-4">
+                        <div className="flex items-center justify-between flex-wrap gap-3">
+                          <div>
+                            <p className="text-sm text-slate-400 flex items-center gap-1.5">
+                              <Star className="w-3.5 h-3.5 text-amber-400" />
+                              Top Creators Page
+                            </p>
+                            <p className="text-xs text-slate-500 mt-0.5">
+                              {item.creator.is_featured
+                                ? `Featured${item.creator.featured_order != null ? ` · Order #${item.creator.featured_order}` : ''}`
+                                : `Not featured · ${featuredCount}/8 slots used`}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {item.creator.is_featured && (
+                              <input
+                                type="number"
+                                min={1}
+                                max={99}
+                                placeholder="Order"
+                                title="Display order (lower = first)"
+                                className="w-16 bg-slate-800/60 border border-slate-700 rounded-lg px-2 py-1.5 text-sm text-white text-center focus:outline-none focus:ring-1 focus:ring-amber-500"
+                                defaultValue={item.creator.featured_order ?? ''}
+                                onBlur={(e) => {
+                                  const val = e.target.value.trim();
+                                  const parsed = val ? parseInt(val, 10) : null;
+                                  if (parsed !== item.creator.featured_order) {
+                                    updateFeaturedOrder.mutate({ userId: item.creator.id, order: parsed });
+                                  }
+                                }}
+                              />
+                            )}
+                            <button
+                              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors disabled:opacity-50 ${
+                                item.creator.is_featured
+                                  ? 'bg-amber-600 hover:bg-amber-500 text-white'
+                                  : featuredCount >= 8
+                                  ? 'bg-slate-700 text-slate-400 cursor-not-allowed'
+                                  : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                              }`}
+                              disabled={toggleFeatured.isPending || (!item.creator.is_featured && featuredCount >= 8)}
+                              title={!item.creator.is_featured && featuredCount >= 8 ? 'Maximum 8 featured creators reached' : undefined}
+                              onClick={() =>
+                                toggleFeatured.mutate({
+                                  userId: item.creator.id,
+                                  isFeatured: !item.creator.is_featured,
+                                })
+                              }
+                            >
+                              {item.creator.is_featured ? 'Unfeature' : featuredCount >= 8 ? 'Limit reached' : 'Feature'}
+                            </button>
+                          </div>
+                        </div>
                       </div>
 
                       {/* Remove Creator */}

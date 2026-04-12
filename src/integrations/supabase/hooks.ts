@@ -187,6 +187,38 @@ export const useAdminData = () => {
   });
 };
 
+export const useFeaturedCreators = () => {
+  return useQuery({
+    queryKey: ['featured-creators'],
+    queryFn: userQueries.getFeaturedCreators,
+    staleTime: 60_000,
+  });
+};
+
+export const useToggleFeatured = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ userId, isFeatured }: { userId: string; isFeatured: boolean }) =>
+      userQueries.toggleFeatured(userId, isFeatured),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin'] });
+      queryClient.invalidateQueries({ queryKey: ['featured-creators'] });
+    },
+  });
+};
+
+export const useUpdateFeaturedOrder = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ userId, order }: { userId: string; order: number | null }) =>
+      userQueries.updateFeaturedOrder(userId, order),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin'] });
+      queryClient.invalidateQueries({ queryKey: ['featured-creators'] });
+    },
+  });
+};
+
 export const useRemoveCreator = () => {
   const queryClient = useQueryClient();
   return useMutation({
