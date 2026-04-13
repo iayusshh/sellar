@@ -90,7 +90,12 @@ export default function AdminPortal() {
       visits: [],
     };
 
-  const creators = users.filter((u: any) => !u.is_admin && !u.is_owner);
+  // Show users who are flagged as creators OR who own products (covers creators
+  // created before the is_creator column was added).
+  const creatorIds = new Set(products.map((p: any) => p.creator_id).filter(Boolean));
+  const creators = users.filter(
+    (u: any) => !u.is_admin && !u.is_owner && (u.is_creator === true || creatorIds.has(u.id))
+  );
   const featuredCount = creators.filter((c: any) => c.is_featured).length;
   const walletsByUser = new Map(wallets.map((w: any) => [w.user_id, w]));
 
@@ -1359,7 +1364,7 @@ export default function AdminPortal() {
                                 <span>Buyer</span><span>Email</span><span>Amount</span><span>Status</span><span>Date</span>
                               </div>
                               {(productPurchases[product.id] ?? []).map((pu: any) => (
-                                <div key={pu.id} className="grid grid-cols-5 gap-3 items-center text-sm px-3 py-2.5 bg-slate-900/40 rounded-lg">
+                                <div key={pu.purchase_id} className="grid grid-cols-5 gap-3 items-center text-sm px-3 py-2.5 bg-slate-900/40 rounded-lg">
                                   <div className="flex items-center gap-2">
                                     <div className="w-6 h-6 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center">
                                       <User className="w-3 h-3 text-slate-500" />

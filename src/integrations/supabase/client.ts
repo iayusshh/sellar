@@ -4,10 +4,11 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder.su
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'placeholder-anon-key';
 
 if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
-  console.warn(
-    '⚠️ Supabase environment variables are missing. Auth and database features will not work. ' +
-    'Create a .env file with VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.'
+  console.error(
+    '🔴 Supabase env vars missing — running with placeholders. Restart the dev server after adding them to .env'
   );
+} else {
+  console.log('✅ Supabase client initialised:', supabaseUrl.replace('https://', '').split('.')[0]);
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);

@@ -36,8 +36,7 @@ AS $$
     u.social_links,
     u.featured_order
   FROM public.users u
-  WHERE u.is_creator = true
-    AND u.is_featured = true
+  WHERE u.is_featured = true
   ORDER BY u.featured_order ASC NULLS LAST, u.display_name ASC;
 $$;
 
