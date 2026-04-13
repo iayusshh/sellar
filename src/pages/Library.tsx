@@ -1,7 +1,7 @@
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
-import { useMyPurchases } from '@/integrations/supabase/hooks';
+import { useMyPurchases, useRequestWebinarJoin } from '@/integrations/supabase/hooks';
 import { formatCurrency } from '@/lib/currency';
 import {
     Package,
@@ -15,12 +15,102 @@ import {
     ArrowUpRight,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { toast } from 'sonner';
+
+const WEBINAR_CLIENT_SESSION_KEY = 'sellar_webinar_client_session_id';
+const INITIAL_LIBRARY_NOW_MS = Date.now();
+
+type WebinarState = {
+    status: 'upcoming' | 'live' | 'ended' | 'unscheduled';
+    message: string;
+};
+
+function getWebinarClientSessionId(): string {
+    const existing = localStorage.getItem(WEBINAR_CLIENT_SESSION_KEY);
+    if (existing) return existing;
+    const created = crypto.randomUUID();
+    localStorage.setItem(WEBINAR_CLIENT_SESSION_KEY, created);
+    return created;
+}
+
+function getWebinarState(purchase: any, nowMs: number): WebinarState {
+    if (purchase?.product_kind !== 'webinar') {
+        return { status: 'unscheduled', message: '' };
+    }
+
+    const startsAt = new Date(purchase.webinar_scheduled_at ?? '');
+    if (Number.isNaN(startsAt.getTime())) {
+        return { status: 'unscheduled', message: 'Schedule pending' };
+    }
+
+    const durationMins = Number(purchase.webinar_duration_minutes ?? 60);
+    const earlyJoinMins = Math.max(0, Number(purchase.webinar_join_early_minutes ?? 10));
+    const lateJoinMins = Math.max(0, Number(purchase.webinar_join_late_minutes ?? 30));
+
+    const joinStartsAt = startsAt.getTime() - earlyJoinMins * 60_000;
+    const joinEndsAt = startsAt.getTime() + (durationMins + lateJoinMins) * 60_000;
+
+    if (nowMs < joinStartsAt) {
+        return { status: 'upcoming', message: `Starts ${startsAt.toLocaleString()}` };
+    }
+
+    if (nowMs > joinEndsAt) {
+        return { status: 'ended', message: 'Webinar ended' };
+    }
+
+    return { status: 'live', message: 'Join now' };
+}
 
 export default function Library() {
     const purchasesQuery = useMyPurchases();
     const purchases = purchasesQuery.data?.data ?? [];
+    const joinWebinarMutation = useRequestWebinarJoin();
     const [selectedPurchase, setSelectedPurchase] = useState<any>(null);
+    const [joiningPurchaseId, setJoiningPurchaseId] = useState<string | null>(null);
+    const [nowMs, setNowMs] = useState(INITIAL_LIBRARY_NOW_MS);
+
+    useEffect(() => {
+        const timer = window.setInterval(() => setNowMs(Date.now()), 30_000);
+        return () => window.clearInterval(timer);
+    }, []);
+
+    const purchaseStates = useMemo(() => {
+        const map = new Map<string, WebinarState>();
+        for (const purchase of purchases) {
+            map.set(purchase.purchase_id, getWebinarState(purchase, nowMs));
+        }
+        return map;
+    }, [nowMs, purchases]);
+
+    const handleJoinWebinar = async (purchase: any) => {
+        const clientSessionId = getWebinarClientSessionId();
+        setJoiningPurchaseId(purchase.purchase_id);
+
+        const { data, error } = await joinWebinarMutation.mutateAsync({
+            purchaseId: purchase.purchase_id,
+            clientSessionId,
+        });
+
+        setJoiningPurchaseId(null);
+
+        if (error || !data?.join_url) {
+            toast.error(error?.message ?? 'Could not join this webinar right now.');
+            return;
+        }
+
+        const opened = window.open(data.join_url, '_blank', 'noopener,noreferrer');
+        if (!opened) {
+            toast.error('Popup blocked. Please allow popups and try again.');
+            return;
+        }
+
+        toast.success('Opening webinar...');
+    };
+
+    const selectedPurchaseState = selectedPurchase
+        ? purchaseStates.get(selectedPurchase.purchase_id) ?? getWebinarState(selectedPurchase, nowMs)
+        : null;
 
     return (
         <div className="min-h-screen flex flex-col">
@@ -66,79 +156,113 @@ export default function Library() {
                     {/* Purchases Grid */}
                     {!purchasesQuery.isLoading && purchases.length > 0 && (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {purchases.map((purchase: any) => (
-                                <div
-                                    key={purchase.purchase_id}
-                                    className="border rounded-2xl overflow-hidden bg-card hover:shadow-lg transition-shadow group cursor-pointer"
-                                    onClick={() => setSelectedPurchase(purchase)}
-                                >
-                                    {/* Product Image */}
-                                    <div className="aspect-[16/10] bg-muted relative overflow-hidden">
-                                        {purchase.product_image_url ? (
-                                            <img
-                                                src={purchase.product_image_url}
-                                                alt={purchase.product_title}
-                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                            />
-                                        ) : (
-                                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted to-muted/50">
-                                                <Package className="w-10 h-10 text-muted-foreground/30" />
-                                            </div>
-                                        )}
-                                    </div>
+                            {purchases.map((purchase: any) => {
+                                const isWebinar = purchase.product_kind === 'webinar';
+                                const webinarState = purchaseStates.get(purchase.purchase_id) ?? getWebinarState(purchase, nowMs);
 
-                                    {/* Content */}
-                                    <div className="p-5 space-y-3">
-                                        <h3 className="text-lg font-semibold line-clamp-1 group-hover:text-accent transition-colors">
-                                            {purchase.product_title}
-                                        </h3>
-                                        <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
-                                            {purchase.product_description}
-                                        </p>
-
-                                        {/* Metadata */}
-                                        <div className="flex items-center gap-4 text-xs text-muted-foreground pt-1">
-                                            <Link
-                                                to={`/${purchase.creator_handle}`}
-                                                className="flex items-center gap-1 hover:text-accent transition-colors"
-                                                onClick={(e) => e.stopPropagation()}
-                                            >
-                                                <User className="w-3 h-3" />
-                                                {purchase.creator_name}
-                                            </Link>
-                                            <span className="flex items-center gap-1">
-                                                <Calendar className="w-3 h-3" />
-                                                {new Date(purchase.purchased_at).toLocaleDateString()}
-                                            </span>
+                                return (
+                                    <div
+                                        key={purchase.purchase_id}
+                                        className="border rounded-2xl overflow-hidden bg-card hover:shadow-lg transition-shadow group cursor-pointer"
+                                        onClick={() => setSelectedPurchase(purchase)}
+                                    >
+                                        {/* Product Image */}
+                                        <div className="aspect-[16/10] bg-muted relative overflow-hidden">
+                                            {purchase.product_image_url ? (
+                                                <img
+                                                    src={purchase.product_image_url}
+                                                    alt={purchase.product_title}
+                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted to-muted/50">
+                                                    <Package className="w-10 h-10 text-muted-foreground/30" />
+                                                </div>
+                                            )}
                                         </div>
 
-                                        <div className="flex items-center gap-2 pt-2">
-                                            <span className="text-lg font-bold text-accent">
-                                                {formatCurrency(purchase.price)}
-                                            </span>
-                                        </div>
+                                        {/* Content */}
+                                        <div className="p-5 space-y-3">
+                                            <h3 className="text-lg font-semibold line-clamp-1 group-hover:text-accent transition-colors">
+                                                {purchase.product_title}
+                                            </h3>
+                                            <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
+                                                {purchase.product_description}
+                                            </p>
 
-                                        {/* Access Content Button */}
-                                        {purchase.content_url ? (
-                                            <Button asChild className="w-full gap-2" onClick={(e) => e.stopPropagation()}>
-                                                <a
-                                                    href={purchase.content_url}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
+                                            {isWebinar && (
+                                                <p className="text-xs text-accent">
+                                                    {webinarState.message || 'Live webinar'}
+                                                </p>
+                                            )}
+
+                                            {/* Metadata */}
+                                            <div className="flex items-center gap-4 text-xs text-muted-foreground pt-1">
+                                                <Link
+                                                    to={`/${purchase.creator_handle}`}
+                                                    className="flex items-center gap-1 hover:text-accent transition-colors"
+                                                    onClick={(e) => e.stopPropagation()}
                                                 >
-                                                    <ExternalLink className="w-4 h-4" />
-                                                    Access Content
-                                                </a>
-                                            </Button>
-                                        ) : (
-                                            <Button disabled className="w-full gap-2" variant="secondary">
-                                                <Lock className="w-4 h-4" />
-                                                Content Coming Soon
-                                            </Button>
-                                        )}
+                                                    <User className="w-3 h-3" />
+                                                    {purchase.creator_name}
+                                                </Link>
+                                                <span className="flex items-center gap-1">
+                                                    <Calendar className="w-3 h-3" />
+                                                    {new Date(purchase.purchased_at).toLocaleDateString()}
+                                                </span>
+                                            </div>
+
+                                            <div className="flex items-center gap-2 pt-2">
+                                                <span className="text-lg font-bold text-accent">
+                                                    {formatCurrency(purchase.price)}
+                                                </span>
+                                            </div>
+
+                                            {/* Access Button */}
+                                            {isWebinar ? (
+                                                webinarState.status === 'live' ? (
+                                                    <Button
+                                                        className="w-full gap-2"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleJoinWebinar(purchase);
+                                                        }}
+                                                        disabled={joiningPurchaseId === purchase.purchase_id}
+                                                    >
+                                                        {joiningPurchaseId === purchase.purchase_id ? (
+                                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                                        ) : (
+                                                            <ExternalLink className="w-4 h-4" />
+                                                        )}
+                                                        {joiningPurchaseId === purchase.purchase_id ? 'Joining...' : 'Join Webinar'}
+                                                    </Button>
+                                                ) : (
+                                                    <Button disabled className="w-full gap-2" variant="secondary">
+                                                        <Lock className="w-4 h-4" />
+                                                        {webinarState.status === 'upcoming' ? 'Starts Soon' : webinarState.message}
+                                                    </Button>
+                                                )
+                                            ) : purchase.content_url ? (
+                                                <Button asChild className="w-full gap-2" onClick={(e) => e.stopPropagation()}>
+                                                    <a
+                                                        href={purchase.content_url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                    >
+                                                        <ExternalLink className="w-4 h-4" />
+                                                        Access Content
+                                                    </a>
+                                                </Button>
+                                            ) : (
+                                                <Button disabled className="w-full gap-2" variant="secondary">
+                                                    <Lock className="w-4 h-4" />
+                                                    Content Coming Soon
+                                                </Button>
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     )}
                 </div>
@@ -186,6 +310,12 @@ export default function Library() {
                                 {selectedPurchase.product_description}
                             </p>
 
+                            {selectedPurchase.product_kind === 'webinar' && selectedPurchaseState?.message && (
+                                <p className="text-xs text-accent">
+                                    {selectedPurchaseState.message}
+                                </p>
+                            )}
+
                             <div className="flex items-center justify-between text-xs text-muted-foreground border-t pt-4">
                                 <Link
                                     to={`/${selectedPurchase.creator_handle}`}
@@ -206,7 +336,27 @@ export default function Library() {
                                 <span className="text-2xl font-bold text-accent">
                                     {formatCurrency(selectedPurchase.price)}
                                 </span>
-                                {selectedPurchase.content_url ? (
+                                {selectedPurchase.product_kind === 'webinar' ? (
+                                    selectedPurchaseState?.status === 'live' ? (
+                                        <Button
+                                            className="gap-2"
+                                            onClick={() => handleJoinWebinar(selectedPurchase)}
+                                            disabled={joiningPurchaseId === selectedPurchase.purchase_id}
+                                        >
+                                            {joiningPurchaseId === selectedPurchase.purchase_id ? (
+                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                            ) : (
+                                                <ExternalLink className="w-4 h-4" />
+                                            )}
+                                            {joiningPurchaseId === selectedPurchase.purchase_id ? 'Joining...' : 'Join Webinar'}
+                                        </Button>
+                                    ) : (
+                                        <Button disabled className="gap-2" variant="secondary">
+                                            <Lock className="w-4 h-4" />
+                                            {selectedPurchaseState?.status === 'upcoming' ? 'Starts Soon' : 'Webinar Ended'}
+                                        </Button>
+                                    )
+                                ) : selectedPurchase.content_url ? (
                                     <Button asChild className="gap-2">
                                         <a
                                             href={selectedPurchase.content_url}

@@ -273,3 +273,10 @@ export const useMyPurchases = () => {
     queryFn: purchaseQueries.getMyPurchases,
   });
 };
+
+export const useRequestWebinarJoin = () => {
+  return useMutation({
+    mutationFn: ({ purchaseId, clientSessionId }: { purchaseId: string; clientSessionId: string }) =>
+      purchaseQueries.requestWebinarJoin(purchaseId, clientSessionId),
+  });
+};

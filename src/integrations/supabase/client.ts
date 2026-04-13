@@ -62,7 +62,15 @@ export type Product = {
   price: number;
   currency: string;
   image_url?: string;
+  content_url?: string | null;
   is_active: boolean;
+  product_kind?: 'digital' | 'webinar' | 'session' | 'telegram';
+  webinar_scheduled_at?: string | null;
+  webinar_duration_minutes?: number | null;
+  webinar_capacity?: number | null;
+  webinar_timezone?: string | null;
+  webinar_join_early_minutes?: number | null;
+  webinar_join_late_minutes?: number | null;
   created_at: string;
   updated_at: string;
 };

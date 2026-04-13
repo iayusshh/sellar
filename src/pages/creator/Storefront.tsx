@@ -8,14 +8,12 @@ import {
   Linkedin,
   Globe,
   ShoppingCart,
-  IndianRupee,
   User,
   Package,
   Loader2,
   Share2,
   Check,
   Mail,
-  ExternalLink,
   X,
 } from 'lucide-react';
 import { useProfileByHandle, usePublicProducts, useStartCheckout, useProfile } from '@/integrations/supabase/hooks';
@@ -35,6 +33,21 @@ const XIcon = ({ className }: { className?: string }) => (
 );
 
 const LAST_ORDER_STORAGE_KEY = 'sellar_last_cashfree_order_id';
+
+function isStartedWebinar(product: any): boolean {
+  if (product?.product_kind !== 'webinar') return false;
+  if (!product?.webinar_scheduled_at) return false;
+  const startsAt = new Date(product.webinar_scheduled_at);
+  if (Number.isNaN(startsAt.getTime())) return false;
+  return startsAt.getTime() <= Date.now();
+}
+
+function webinarLabel(product: any): string | null {
+  if (product?.product_kind !== 'webinar' || !product?.webinar_scheduled_at) return null;
+  const startsAt = new Date(product.webinar_scheduled_at);
+  if (Number.isNaN(startsAt.getTime())) return null;
+  return startsAt.toLocaleString();
+}
 
 export default function Storefront() {
   const { handle } = useParams();
@@ -68,6 +81,10 @@ export default function Storefront() {
     }
     if (isCreatorAccount) {
       toast.error('Creator accounts cannot make purchases. Use a general account to buy products.');
+      return;
+    }
+    if (isStartedWebinar(product)) {
+      toast.error('This webinar has already started.');
       return;
     }
     setBuyingProduct(product);
@@ -283,53 +300,75 @@ export default function Storefront() {
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {products.map((product: any, index: number) => (
-                  <div
-                    key={product.id}
-                    className="bg-background rounded-2xl border shadow-sm overflow-hidden group hover:shadow-lg hover:-translate-y-1 transition-all duration-300 animate-slide-up"
-                    style={{ animationDelay: `${index * 0.08}s` }}
-                  >
-                    {/* Product Image */}
-                    <div className="aspect-[16/10] bg-muted overflow-hidden relative">
-                      {product.image_url ? (
-                        <img
-                          src={product.image_url}
-                          alt={product.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted to-muted/50">
-                          <Package className="w-10 h-10 text-muted-foreground/30" />
-                        </div>
-                      )}
-                    </div>
+                {products.map((product: any, index: number) => {
+                  const isWebinar = product.product_kind === 'webinar';
+                  const startsAtLabel = webinarLabel(product);
+                  const webinarStarted = isStartedWebinar(product);
+                  const disableBuy = isCreatorAccount || webinarStarted;
 
-                    {/* Content */}
-                    <div className="p-5">
-                      <h3 className="text-lg font-semibold mb-1.5 group-hover:text-accent transition-colors">
-                        {product.title}
-                      </h3>
-                      <p className="text-sm text-muted-foreground line-clamp-2 mb-5 leading-relaxed">
-                        {product.description}
-                      </p>
+                  return (
+                    <div
+                      key={product.id}
+                      className="bg-background rounded-2xl border shadow-sm overflow-hidden group hover:shadow-lg hover:-translate-y-1 transition-all duration-300 animate-slide-up"
+                      style={{ animationDelay: `${index * 0.08}s` }}
+                    >
+                      {/* Product Image */}
+                      <div className="aspect-[16/10] bg-muted overflow-hidden relative">
+                        {product.image_url ? (
+                          <img
+                            src={product.image_url}
+                            alt={product.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted to-muted/50">
+                            <Package className="w-10 h-10 text-muted-foreground/30" />
+                          </div>
+                        )}
+                      </div>
 
-                      <div className="flex items-center justify-between">
-                        <div className="text-2xl font-bold text-accent">
-                          {formatCurrency(product.price)}
+                      {/* Content */}
+                      <div className="p-5">
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <h3 className="text-lg font-semibold group-hover:text-accent transition-colors line-clamp-1">
+                            {product.title}
+                          </h3>
+                          {isWebinar && (
+                            <Badge variant="secondary" className="text-[10px]">Live Webinar</Badge>
+                          )}
                         </div>
-                        <Button
-                          className="gap-1.5 shadow-sm"
-                          onClick={() => handleBuyNow(product)}
-                          disabled={isCreatorAccount}
-                          title={isCreatorAccount ? 'Creator accounts cannot purchase products' : undefined}
-                        >
-                          <ShoppingCart className="w-4 h-4" />
-                          {isCreatorAccount ? 'Creators cannot buy' : 'Buy Now'}
-                        </Button>
+                        <p className="text-sm text-muted-foreground line-clamp-2 mb-3 leading-relaxed">
+                          {product.description}
+                        </p>
+
+                        {isWebinar && startsAtLabel && (
+                          <p className="text-xs text-accent mb-4">Starts: {startsAtLabel}</p>
+                        )}
+
+                        <div className="flex items-center justify-between">
+                          <div className="text-2xl font-bold text-accent">
+                            {formatCurrency(product.price)}
+                          </div>
+                          <Button
+                            className="gap-1.5 shadow-sm"
+                            onClick={() => handleBuyNow(product)}
+                            disabled={disableBuy}
+                            title={
+                              isCreatorAccount
+                                ? 'Creator accounts cannot purchase products'
+                                : webinarStarted
+                                  ? 'This webinar has already started'
+                                  : undefined
+                            }
+                          >
+                            <ShoppingCart className="w-4 h-4" />
+                            {isCreatorAccount ? 'Creators cannot buy' : webinarStarted ? 'Started' : 'Buy Now'}
+                          </Button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -397,6 +436,11 @@ export default function Storefront() {
                 <div className="flex-1">
                   <p className="font-semibold">{buyingProduct.title}</p>
                   <p className="text-sm text-muted-foreground line-clamp-2">{buyingProduct.description}</p>
+                  {buyingProduct.product_kind === 'webinar' && buyingProduct.webinar_scheduled_at && (
+                    <p className="text-xs text-accent mt-1">
+                      Starts: {new Date(buyingProduct.webinar_scheduled_at).toLocaleString()}
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="flex items-center justify-between bg-muted/50 rounded-xl p-4">

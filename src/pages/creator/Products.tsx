@@ -27,8 +27,21 @@ import {
   Search,
   Link as LinkIcon,
   Upload,
+  Calendar,
+  Clock,
+  Users,
 } from 'lucide-react';
 import CreatorLayout from '@/components/layout/CreatorLayout';
+
+type ProductKind = 'digital' | 'webinar' | 'session' | 'telegram';
+
+function toLocalDateTimeInput(isoValue: string | null | undefined): string {
+  if (!isoValue) return '';
+  const date = new Date(isoValue);
+  if (Number.isNaN(date.getTime())) return '';
+  date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+  return date.toISOString().slice(0, 16);
+}
 
 export default function Products() {
   const { user } = useAuth();
@@ -48,17 +61,48 @@ export default function Products() {
   const [price, setPrice] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [contentUrl, setContentUrl] = useState('');
+  const [productKind, setProductKind] = useState<ProductKind>('digital');
+  const [webinarScheduledAt, setWebinarScheduledAt] = useState('');
+  const [webinarDurationMinutes, setWebinarDurationMinutes] = useState('60');
+  const [webinarCapacity, setWebinarCapacity] = useState('100');
+  const [webinarTimezone, setWebinarTimezone] = useState(
+    Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+  );
   const [isActive, setIsActive] = useState(true);
   const [search, setSearch] = useState('');
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const isWebinar = productKind === 'webinar';
+
   const isSubmitting = createProduct.isPending || updateProduct.isPending || deleteProduct.isPending;
 
   const canSubmit = useMemo(() => {
     const parsedPrice = Number(price);
-    return title.trim().length > 0 && description.trim().length > 0 && parsedPrice > 0;
-  }, [title, description, price]);
+    const hasBasics = title.trim().length > 0 && description.trim().length > 0 && parsedPrice > 0;
+    if (!hasBasics) return false;
+
+    if (!isWebinar) return true;
+
+    const parsedDuration = Number(webinarDurationMinutes);
+    const parsedCapacity = Number(webinarCapacity);
+
+    return (
+      webinarScheduledAt.trim().length > 0 &&
+      parsedDuration > 0 &&
+      parsedCapacity > 0 &&
+      contentUrl.trim().length > 0
+    );
+  }, [
+    contentUrl,
+    description,
+    isWebinar,
+    price,
+    title,
+    webinarCapacity,
+    webinarDurationMinutes,
+    webinarScheduledAt,
+  ]);
 
   const filteredProducts = useMemo(() => {
     if (!search.trim()) return products;
@@ -75,6 +119,11 @@ export default function Products() {
     setPrice('');
     setImageUrl('');
     setContentUrl('');
+    setProductKind('digital');
+    setWebinarScheduledAt('');
+    setWebinarDurationMinutes('60');
+    setWebinarCapacity('100');
+    setWebinarTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC');
     setIsActive(true);
     setShowForm(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -114,6 +163,20 @@ export default function Products() {
     if (!userId) { toast.error('You must be signed in.'); return; }
     if (!canSubmit) { toast.error('Please fill in all required fields.'); return; }
 
+    let normalizedSchedule: string | null = null;
+    if (isWebinar) {
+      const parsedSchedule = new Date(webinarScheduledAt);
+      if (Number.isNaN(parsedSchedule.getTime())) {
+        toast.error('Please provide a valid webinar date and time.');
+        return;
+      }
+      if (parsedSchedule.getTime() <= Date.now()) {
+        toast.error('Webinar must be scheduled in the future.');
+        return;
+      }
+      normalizedSchedule = parsedSchedule.toISOString();
+    }
+
     const payload = {
       creator_id: userId,
       title: title.trim(),
@@ -122,6 +185,11 @@ export default function Products() {
       currency: 'INR',
       image_url: imageUrl.trim() || null,
       content_url: contentUrl.trim() || null,
+      product_kind: productKind,
+      webinar_scheduled_at: isWebinar ? normalizedSchedule : null,
+      webinar_duration_minutes: isWebinar ? Number(webinarDurationMinutes) : null,
+      webinar_capacity: isWebinar ? Number(webinarCapacity) : null,
+      webinar_timezone: isWebinar ? webinarTimezone.trim() || 'UTC' : null,
       is_active: isActive,
     };
 
@@ -144,6 +212,11 @@ export default function Products() {
     setPrice(String(product.price));
     setImageUrl(product.image_url ?? '');
     setContentUrl(product.content_url ?? '');
+    setProductKind((product.product_kind ?? 'digital') as ProductKind);
+    setWebinarScheduledAt(toLocalDateTimeInput(product.webinar_scheduled_at));
+    setWebinarDurationMinutes(String(product.webinar_duration_minutes ?? 60));
+    setWebinarCapacity(String(product.webinar_capacity ?? 100));
+    setWebinarTimezone(product.webinar_timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone ?? 'UTC');
     setIsActive(product.is_active);
     setShowForm(true);
   };
@@ -172,7 +245,7 @@ export default function Products() {
       <div className="flex items-start justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-white mb-1">Products</h1>
-          <p className="text-slate-500 text-sm">Create and manage your digital products</p>
+          <p className="text-slate-500 text-sm">Create and manage digital products and webinars</p>
         </div>
         <button
           onClick={() => { resetForm(); setShowForm(true); }}
@@ -246,6 +319,21 @@ export default function Products() {
               </div>
               <div className="md:col-span-2 space-y-2">
                 <label className="text-sm text-slate-400 flex items-center gap-2">
+                  <Package className="w-3.5 h-3.5" /> Product Type
+                </label>
+                <select
+                  value={productKind}
+                  onChange={(e) => setProductKind(e.target.value as ProductKind)}
+                  className="w-full h-11 px-4 rounded-xl bg-white/[0.05] border border-white/[0.1] text-white focus:outline-none focus:border-emerald-500/50 transition-colors text-sm"
+                >
+                  <option className="bg-slate-900" value="digital">Digital Product</option>
+                  <option className="bg-slate-900" value="webinar">Live Webinar</option>
+                  <option className="bg-slate-900" value="session">1:1 Session</option>
+                  <option className="bg-slate-900" value="telegram">Telegram Access</option>
+                </select>
+              </div>
+              <div className="md:col-span-2 space-y-2">
+                <label className="text-sm text-slate-400 flex items-center gap-2">
                   <FileText className="w-3.5 h-3.5" /> Description
                 </label>
                 <textarea
@@ -256,6 +344,60 @@ export default function Products() {
                   className="w-full px-4 py-3 rounded-xl bg-white/[0.05] border border-white/[0.1] text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500/50 transition-colors text-sm resize-none"
                 />
               </div>
+              {isWebinar && (
+                <div className="md:col-span-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 space-y-4">
+                  <p className="text-xs text-emerald-300">
+                    Live-only webinar: buyers can join only during the configured time window.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm text-slate-300 flex items-center gap-2">
+                        <Calendar className="w-3.5 h-3.5" /> Scheduled Date &amp; Time
+                      </label>
+                      <input
+                        type="datetime-local"
+                        value={webinarScheduledAt}
+                        onChange={(e) => setWebinarScheduledAt(e.target.value)}
+                        className="w-full h-11 px-4 rounded-xl bg-white/[0.05] border border-white/[0.1] text-white focus:outline-none focus:border-emerald-500/50 transition-colors text-sm"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm text-slate-300 flex items-center gap-2">
+                        <Clock className="w-3.5 h-3.5" /> Duration (minutes)
+                      </label>
+                      <input
+                        type="number"
+                        min={15}
+                        step={5}
+                        value={webinarDurationMinutes}
+                        onChange={(e) => setWebinarDurationMinutes(e.target.value)}
+                        className="w-full h-11 px-4 rounded-xl bg-white/[0.05] border border-white/[0.1] text-white focus:outline-none focus:border-emerald-500/50 transition-colors text-sm"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm text-slate-300 flex items-center gap-2">
+                        <Users className="w-3.5 h-3.5" /> Capacity
+                      </label>
+                      <input
+                        type="number"
+                        min={1}
+                        value={webinarCapacity}
+                        onChange={(e) => setWebinarCapacity(e.target.value)}
+                        className="w-full h-11 px-4 rounded-xl bg-white/[0.05] border border-white/[0.1] text-white focus:outline-none focus:border-emerald-500/50 transition-colors text-sm"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm text-slate-300">Timezone</label>
+                      <input
+                        value={webinarTimezone}
+                        onChange={(e) => setWebinarTimezone(e.target.value)}
+                        placeholder="Asia/Kolkata"
+                        className="w-full h-11 px-4 rounded-xl bg-white/[0.05] border border-white/[0.1] text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500/50 transition-colors text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
               <div className="md:col-span-2 space-y-2">
                 <label className="text-sm text-slate-400 flex items-center gap-2">
                   <ImageIcon className="w-3.5 h-3.5" /> Product Image (optional)
@@ -317,15 +459,19 @@ export default function Products() {
               </div>
               <div className="md:col-span-2 space-y-2">
                 <label className="text-sm text-slate-400 flex items-center gap-2">
-                  <LinkIcon className="w-3.5 h-3.5" /> Content URL (delivered after purchase)
+                  <LinkIcon className="w-3.5 h-3.5" /> {isWebinar ? 'Webinar Join URL' : 'Content URL (delivered after purchase)'}
                 </label>
                 <input
                   value={contentUrl}
                   onChange={(e) => setContentUrl(e.target.value)}
-                  placeholder="https://drive.google.com/... or a download link"
+                  placeholder={isWebinar ? 'https://zoom.us/... or your livestream URL' : 'https://drive.google.com/... or a download link'}
                   className="w-full h-11 px-4 rounded-xl bg-white/[0.05] border border-white/[0.1] text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500/50 transition-colors text-sm"
                 />
-                <p className="text-[11px] text-slate-600">Paste a link to the file buyers will receive — Google Drive, Notion, Dropbox, etc.</p>
+                <p className="text-[11px] text-slate-600">
+                  {isWebinar
+                    ? 'Buyers can access this link only near the scheduled time through gated join checks.'
+                    : 'Paste a link to the file buyers will receive — Google Drive, Notion, Dropbox, etc.'}
+                </p>
               </div>
               <div className="flex items-end">
                 <label className="flex items-center gap-3 h-11 px-4 rounded-xl bg-white/[0.05] border border-white/[0.1] cursor-pointer w-full">
@@ -406,8 +552,16 @@ export default function Products() {
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-white truncate">{product.title}</p>
                     <p className="text-xs text-slate-500 truncate max-w-md mt-0.5">{product.description}</p>
+                    {product.product_kind === 'webinar' && product.webinar_scheduled_at && (
+                      <p className="text-[11px] text-emerald-300/80 mt-1">
+                        Webinar: {new Date(product.webinar_scheduled_at).toLocaleString()}
+                      </p>
+                    )}
                     <div className="flex items-center gap-3 mt-1.5">
                       <span className="text-sm font-semibold text-emerald-400">{formatCurrency(product.price)}</span>
+                      <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-300">
+                        {String(product.product_kind ?? 'digital')}
+                      </span>
                       <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${product.is_active
                         ? 'bg-emerald-500/15 text-emerald-400'
                         : 'bg-slate-700/50 text-slate-500'

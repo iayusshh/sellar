@@ -194,6 +194,45 @@ export const transactionQueries = {
   },
 };
 
+const WEBINAR_PRODUCT_COLUMNS = [
+  'product_kind',
+  'webinar_scheduled_at',
+  'webinar_duration_minutes',
+  'webinar_capacity',
+  'webinar_timezone',
+  'webinar_join_early_minutes',
+  'webinar_join_late_minutes',
+] as const;
+
+let webinarSchemaSupport: 'unknown' | 'supported' | 'missing' = 'unknown';
+
+function stripWebinarProductColumns<T extends Record<string, unknown>>(payload: T): T {
+  const next = { ...payload };
+  for (const column of WEBINAR_PRODUCT_COLUMNS) {
+    delete (next as Record<string, unknown>)[column];
+  }
+  return next;
+}
+
+function isWebinarSchemaMissingError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const code = String((error as { code?: unknown }).code ?? '');
+  const message = String((error as { message?: unknown }).message ?? '').toLowerCase();
+  const details = String((error as { details?: unknown }).details ?? '').toLowerCase();
+  if (code !== 'PGRST204') return false;
+  return /product_kind|webinar_/.test(`${message} ${details}`);
+}
+
+function isWebinarPayload(payload: Record<string, unknown>): boolean {
+  return String(payload.product_kind ?? '').toLowerCase() === 'webinar';
+}
+
+function webinarMigrationRequiredError() {
+  return new Error(
+    'Webinar schema is not applied yet. Run supabase/sql/migrations/add-webinar-products.sql in Supabase SQL Editor, then retry.'
+  );
+}
+
 export const productQueries = {
   getProducts: async (userId: string, includeInactive = false) => {
     let query = supabase
@@ -216,22 +255,91 @@ export const productQueries = {
     return { data, error };
   },
   createProduct: async (productData: any) => {
+    const requested = (productData ?? {}) as Record<string, unknown>;
+    const canAttemptLegacy = webinarSchemaSupport === 'missing';
+
+    if (canAttemptLegacy && isWebinarPayload(requested)) {
+      return { data: null, error: webinarMigrationRequiredError() };
+    }
+
+    const payload = canAttemptLegacy
+      ? stripWebinarProductColumns(requested)
+      : requested;
+
     const { data, error } = await supabase
       .from('products')
-      .insert(productData)
+      .insert(payload)
       .select()
       .single();
-    return { data, error };
+
+    if (!error) {
+      if (!canAttemptLegacy && requested.product_kind) webinarSchemaSupport = 'supported';
+      return { data, error: null };
+    }
+
+    if (!isWebinarSchemaMissingError(error)) {
+      return { data, error };
+    }
+
+    webinarSchemaSupport = 'missing';
+
+    if (isWebinarPayload(requested)) {
+      return { data: null, error: webinarMigrationRequiredError() };
+    }
+
+    const legacyPayload = stripWebinarProductColumns(requested);
+    const fallback = await supabase
+      .from('products')
+      .insert(legacyPayload)
+      .select()
+      .single();
+
+    return { data: fallback.data, error: fallback.error };
   },
 
   updateProduct: async (productId: string, updates: any) => {
+    const requested = (updates ?? {}) as Record<string, unknown>;
+    const canAttemptLegacy = webinarSchemaSupport === 'missing';
+
+    if (canAttemptLegacy && isWebinarPayload(requested)) {
+      return { data: null, error: webinarMigrationRequiredError() };
+    }
+
+    const payload = canAttemptLegacy
+      ? stripWebinarProductColumns(requested)
+      : requested;
+
     const { data, error } = await supabase
       .from('products')
-      .update(updates)
+      .update(payload)
       .eq('id', productId)
       .select()
       .single();
-    return { data, error };
+
+    if (!error) {
+      if (!canAttemptLegacy && requested.product_kind) webinarSchemaSupport = 'supported';
+      return { data, error: null };
+    }
+
+    if (!isWebinarSchemaMissingError(error)) {
+      return { data, error };
+    }
+
+    webinarSchemaSupport = 'missing';
+
+    if (isWebinarPayload(requested)) {
+      return { data: null, error: webinarMigrationRequiredError() };
+    }
+
+    const legacyPayload = stripWebinarProductColumns(requested);
+    const fallback = await supabase
+      .from('products')
+      .update(legacyPayload)
+      .eq('id', productId)
+      .select()
+      .single();
+
+    return { data: fallback.data, error: fallback.error };
   },
 
   deleteProduct: async (productId: string) => {
@@ -280,6 +388,37 @@ export interface CheckoutSession {
   payment_session_id: string;
   cashfree_order_id: string;
   purchase_id: string;
+}
+
+export interface MyPurchase {
+  purchase_id: string;
+  product_id: string;
+  product_title: string;
+  product_description: string;
+  product_image_url: string | null;
+  content_url: string | null;
+  price: number;
+  currency: string;
+  creator_id: string;
+  creator_name: string;
+  creator_handle: string;
+  payment_provider: string;
+  purchased_at: string;
+  product_kind?: 'digital' | 'webinar' | 'session' | 'telegram';
+  webinar_scheduled_at?: string | null;
+  webinar_duration_minutes?: number | null;
+  webinar_capacity?: number | null;
+  webinar_timezone?: string | null;
+  webinar_join_early_minutes?: number | null;
+  webinar_join_late_minutes?: number | null;
+}
+
+export interface WebinarJoinSession {
+  join_url: string;
+  expires_at: string;
+  scheduled_at: string;
+  server_time: string;
+  title: string;
 }
 
 type PaymentStatus = 'completed' | 'pending' | 'failed';
@@ -343,6 +482,40 @@ export const purchaseQueries = {
 
   getMyPurchases: async () => {
     const { data, error } = await supabase.rpc('get_my_purchases');
-    return { data, error };
+    return { data: (data ?? []) as MyPurchase[], error };
+  },
+
+  requestWebinarJoin: async (
+    purchaseId: string,
+    clientSessionId: string
+  ): Promise<{ data: WebinarJoinSession | null; error: Error | null }> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      return { data: null, error: new Error('Please sign in to join webinars.') };
+    }
+
+    const { data, error } = await supabase.functions.invoke<WebinarJoinSession>(
+      'generate-webinar-join-token',
+      {
+        body: {
+          purchase_id: purchaseId,
+          client_session_id: clientSessionId,
+        },
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      }
+    );
+
+    if (error) {
+      let message = (error as any).message as string;
+      try {
+        const body = await (error as any).context?.json?.();
+        if (body?.error) message = body.error;
+      } catch {
+        // Ignore parser failures and keep default message.
+      }
+      return { data: null, error: new Error(message) };
+    }
+
+    return { data: data ?? null, error: null };
   },
 };
