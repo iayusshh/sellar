@@ -11,12 +11,16 @@ import {
     Calendar,
     User,
     Lock,
+    X,
+    ArrowUpRight,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useState } from 'react';
 
 export default function Library() {
     const purchasesQuery = useMyPurchases();
     const purchases = purchasesQuery.data?.data ?? [];
+    const [selectedPurchase, setSelectedPurchase] = useState<any>(null);
 
     return (
         <div className="min-h-screen flex flex-col">
@@ -65,7 +69,8 @@ export default function Library() {
                             {purchases.map((purchase: any) => (
                                 <div
                                     key={purchase.purchase_id}
-                                    className="border rounded-2xl overflow-hidden bg-card hover:shadow-lg transition-shadow group"
+                                    className="border rounded-2xl overflow-hidden bg-card hover:shadow-lg transition-shadow group cursor-pointer"
+                                    onClick={() => setSelectedPurchase(purchase)}
                                 >
                                     {/* Product Image */}
                                     <div className="aspect-[16/10] bg-muted relative overflow-hidden">
@@ -93,10 +98,14 @@ export default function Library() {
 
                                         {/* Metadata */}
                                         <div className="flex items-center gap-4 text-xs text-muted-foreground pt-1">
-                                            <span className="flex items-center gap-1">
+                                            <Link
+                                                to={`/${purchase.creator_handle}`}
+                                                className="flex items-center gap-1 hover:text-accent transition-colors"
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
                                                 <User className="w-3 h-3" />
                                                 {purchase.creator_name}
-                                            </span>
+                                            </Link>
                                             <span className="flex items-center gap-1">
                                                 <Calendar className="w-3 h-3" />
                                                 {new Date(purchase.purchased_at).toLocaleDateString()}
@@ -111,7 +120,7 @@ export default function Library() {
 
                                         {/* Access Content Button */}
                                         {purchase.content_url ? (
-                                            <Button asChild className="w-full gap-2">
+                                            <Button asChild className="w-full gap-2" onClick={(e) => e.stopPropagation()}>
                                                 <a
                                                     href={purchase.content_url}
                                                     target="_blank"
@@ -134,6 +143,92 @@ export default function Library() {
                     )}
                 </div>
             </main>
+            {/* Product Detail Modal */}
+            {selectedPurchase && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+                    onClick={() => setSelectedPurchase(null)}
+                >
+                    <div
+                        className="bg-background border rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden animate-scale-in"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Image */}
+                        {selectedPurchase.product_image_url ? (
+                            <div className="aspect-[16/9] overflow-hidden">
+                                <img
+                                    src={selectedPurchase.product_image_url}
+                                    alt={selectedPurchase.product_title}
+                                    className="w-full h-full object-cover"
+                                />
+                            </div>
+                        ) : (
+                            <div className="aspect-[16/9] bg-gradient-to-br from-muted to-muted/50 flex items-center justify-center">
+                                <Package className="w-14 h-14 text-muted-foreground/30" />
+                            </div>
+                        )}
+
+                        {/* Body */}
+                        <div className="p-6 space-y-4">
+                            <div className="flex items-start justify-between gap-3">
+                                <h2 className="text-xl font-bold leading-snug">
+                                    {selectedPurchase.product_title}
+                                </h2>
+                                <button
+                                    onClick={() => setSelectedPurchase(null)}
+                                    className="text-muted-foreground hover:text-foreground transition-colors flex-shrink-0 mt-0.5"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            <p className="text-sm text-muted-foreground leading-relaxed">
+                                {selectedPurchase.product_description}
+                            </p>
+
+                            <div className="flex items-center justify-between text-xs text-muted-foreground border-t pt-4">
+                                <Link
+                                    to={`/${selectedPurchase.creator_handle}`}
+                                    className="flex items-center gap-1.5 hover:text-accent transition-colors font-medium"
+                                    onClick={() => setSelectedPurchase(null)}
+                                >
+                                    <User className="w-3.5 h-3.5" />
+                                    {selectedPurchase.creator_name}
+                                    <ArrowUpRight className="w-3 h-3" />
+                                </Link>
+                                <span className="flex items-center gap-1">
+                                    <Calendar className="w-3.5 h-3.5" />
+                                    Purchased {new Date(selectedPurchase.purchased_at).toLocaleDateString()}
+                                </span>
+                            </div>
+
+                            <div className="flex items-center justify-between pt-1">
+                                <span className="text-2xl font-bold text-accent">
+                                    {formatCurrency(selectedPurchase.price)}
+                                </span>
+                                {selectedPurchase.content_url ? (
+                                    <Button asChild className="gap-2">
+                                        <a
+                                            href={selectedPurchase.content_url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                        >
+                                            <ExternalLink className="w-4 h-4" />
+                                            Access Content
+                                        </a>
+                                    </Button>
+                                ) : (
+                                    <Button disabled className="gap-2" variant="secondary">
+                                        <Lock className="w-4 h-4" />
+                                        Content Coming Soon
+                                    </Button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <Footer />
         </div>
     );
