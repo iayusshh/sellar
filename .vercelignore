@@ -32,8 +32,28 @@ docker-compose.yml
 setup-supabase.sh
 verify-supabase.js
 
+# Exclude non-Vite app stacks and backend-only code
+app/
+api/
+auth/
+admin/
+buyer/
+checkout/
+creator/
+dashboard/
+components/
+lib/
+prisma/
+types/
+supabase/
+scripts/
+auth.ts
+next.config.ts
+prisma.config.ts
+
 # Project docs
 README.md
 PROJECT_SUMMARY.md
 SUPABASE_SETUP.md
 masterplan.md
+docs/
