@@ -1,0 +1,1473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sellar — Creator Monetization Platform</title>
+  <style>
+    :root {
+      --brand: #7c3aed;
+      --brand-light: #a78bfa;
+      --brand-dark: #4c1d95;
+      --accent: #06b6d4;
+      --accent2: #f59e0b;
+      --success: #10b981;
+      --bg: #0a0a0f;
+      --card: #13131a;
+      --border: rgba(255,255,255,0.07);
+      --text: #f8fafc;
+      --muted: #94a3b8;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 48px;
+      background: rgba(10,10,15,0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo { display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 700; }
+    .logo-icon {
+      width: 34px; height: 34px; border-radius: 8px;
+      background: linear-gradient(135deg, var(--brand), var(--accent));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 900; color: #fff;
+    }
+    .nav-links { display: flex; gap: 32px; list-style: none; }
+    .nav-links a { color: var(--muted); text-decoration: none; font-size: 14px; transition: color .2s; }
+    .nav-links a:hover { color: var(--text); }
+    .nav-badge {
+      background: linear-gradient(135deg, var(--brand), var(--accent));
+      color: #fff; padding: 6px 16px; border-radius: 6px;
+      font-size: 13px; font-weight: 600; text-decoration: none;
+    }
+
+    /* ── SECTIONS ── */
+    section { min-height: 100vh; padding: 120px 48px 80px; display: flex; flex-direction: column; justify-content: center; }
+    .section-label {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(124,58,237,0.15); border: 1px solid rgba(124,58,237,0.3);
+      color: var(--brand-light); padding: 6px 14px; border-radius: 100px;
+      font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+      margin-bottom: 24px; width: fit-content;
+    }
+    h1 { font-size: clamp(40px, 6vw, 72px); font-weight: 800; line-height: 1.08; letter-spacing: -.03em; }
+    h2 { font-size: clamp(28px, 4vw, 48px); font-weight: 800; line-height: 1.12; letter-spacing: -.025em; }
+    h3 { font-size: 20px; font-weight: 700; }
+    p { line-height: 1.65; color: var(--muted); }
+    .gradient-text {
+      background: linear-gradient(120deg, var(--brand-light), var(--accent));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+
+    /* ── HERO ── */
+    #hero {
+      position: relative; overflow: hidden;
+      background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(124,58,237,.35) 0%, transparent 65%);
+    }
+    .hero-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; max-width: 1280px; margin: 0 auto; width: 100%; }
+    .hero-kpis { display: flex; gap: 16px; margin-top: 40px; flex-wrap: wrap; }
+    .kpi-pill {
+      background: rgba(255,255,255,.05); border: 1px solid var(--border);
+      border-radius: 10px; padding: 14px 20px; min-width: 130px;
+    }
+    .kpi-num { font-size: 24px; font-weight: 800; color: var(--text); }
+    .kpi-lbl { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .hero-cta { display: flex; gap: 12px; margin-top: 40px; flex-wrap: wrap; }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--brand), var(--accent));
+      color: #fff; padding: 14px 28px; border-radius: 10px;
+      font-weight: 700; font-size: 15px; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
+      box-shadow: 0 8px 32px rgba(124,58,237,.4);
+    }
+    .btn-outline {
+      border: 1px solid var(--border); color: var(--text);
+      padding: 14px 28px; border-radius: 10px; font-weight: 600; font-size: 15px;
+      text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(255,255,255,.04);
+    }
+
+    /* ── APP MOCKUP ── */
+    .mockup-frame {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 16px; overflow: hidden;
+      box-shadow: 0 40px 80px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.04);
+    }
+    .mockup-bar {
+      background: rgba(255,255,255,.04); padding: 12px 16px;
+      display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border);
+    }
+    .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .dot-r { background: #ff5f57; } .dot-y { background: #febc2e; } .dot-g { background: #28c840; }
+    .url-bar {
+      flex: 1; background: rgba(255,255,255,.06); border-radius: 6px;
+      padding: 5px 12px; font-size: 12px; color: var(--muted); margin-left: 8px;
+    }
+
+    /* ── FEATURES GRID ── */
+    .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 1280px; margin: 0 auto; width: 100%; }
+    .feature-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 16px; padding: 28px; transition: border-color .2s, transform .2s;
+    }
+    .feature-card:hover { border-color: rgba(124,58,237,.4); transform: translateY(-2px); }
+    .feat-icon {
+      width: 48px; height: 48px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; margin-bottom: 16px;
+    }
+    .feat-icon.purple { background: rgba(124,58,237,.15); }
+    .feat-icon.cyan { background: rgba(6,182,212,.15); }
+    .feat-icon.amber { background: rgba(245,158,11,.15); }
+    .feat-icon.green { background: rgba(16,185,129,.15); }
+    .feat-icon.pink { background: rgba(236,72,153,.15); }
+    .feat-icon.blue { background: rgba(59,130,246,.15); }
+    .feature-card h3 { margin-bottom: 8px; }
+    .feature-card p { font-size: 14px; }
+
+    /* ── FLOW STEPS ── */
+    .flow-container { max-width: 1280px; margin: 0 auto; width: 100%; }
+    .flow-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: start; }
+    .steps { display: flex; flex-direction: column; gap: 0; }
+    .step {
+      display: flex; gap: 20px; padding: 24px 0;
+      border-left: 2px solid var(--border); padding-left: 32px; position: relative;
+    }
+    .step:last-child { border-left-color: transparent; }
+    .step-num {
+      position: absolute; left: -17px; top: 24px;
+      width: 32px; height: 32px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--brand), var(--accent));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 800; flex-shrink: 0;
+    }
+    .step-content h3 { font-size: 16px; margin-bottom: 6px; }
+    .step-content p { font-size: 14px; }
+    .step-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(16,185,129,.15); color: #10b981;
+      border: 1px solid rgba(16,185,129,.25); border-radius: 6px;
+      padding: 3px 10px; font-size: 11px; font-weight: 600; margin-top: 8px;
+    }
+
+    /* ── SCREEN MOCKUPS ── */
+    .screen-mockup {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 16px; overflow: hidden;
+      box-shadow: 0 24px 48px rgba(0,0,0,.5);
+    }
+    .screen-inner { padding: 20px; }
+
+    /* ── PRODUCT CARDS ── */
+    .product-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .product-card {
+      background: rgba(255,255,255,.03); border: 1px solid var(--border);
+      border-radius: 12px; overflow: hidden;
+    }
+    .product-img { width: 100%; height: 100px; object-fit: cover; }
+    .product-img-placeholder {
+      width: 100%; height: 100px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 32px;
+    }
+    .product-body { padding: 12px; }
+    .product-title { font-size: 12px; font-weight: 600; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .product-price { font-size: 14px; font-weight: 800; color: var(--brand-light); }
+    .product-badge { font-size: 10px; color: var(--muted); }
+
+    /* ── PAYMENT FLOW ── */
+    .payment-flow { display: flex; align-items: center; gap: 0; max-width: 900px; margin: 48px auto 0; }
+    .pay-step {
+      flex: 1; text-align: center; padding: 24px 16px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; position: relative;
+    }
+    .pay-step:not(:last-child)::after {
+      content: '→'; position: absolute; right: -18px; top: 50%;
+      transform: translateY(-50%); color: var(--brand-light);
+      font-size: 20px; font-weight: 800; z-index: 1;
+    }
+    .pay-step + .pay-step { margin-left: 24px; }
+    .pay-icon { font-size: 28px; margin-bottom: 10px; }
+    .pay-title { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+    .pay-desc { font-size: 11px; color: var(--muted); }
+
+    /* ── DASHBOARD PREVIEW ── */
+    .dashboard-grid { display: grid; grid-template-columns: 240px 1fr; gap: 0; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); }
+    .dash-sidebar {
+      background: rgba(255,255,255,.03); border-right: 1px solid var(--border);
+      padding: 20px 0;
+    }
+    .dash-sidebar-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 20px; font-size: 13px; color: var(--muted);
+      cursor: pointer;
+    }
+    .dash-sidebar-item.active { background: rgba(124,58,237,.15); color: var(--brand-light); border-right: 2px solid var(--brand); }
+    .dash-main { padding: 24px; }
+    .stat-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+    .stat-card {
+      background: rgba(255,255,255,.04); border: 1px solid var(--border);
+      border-radius: 10px; padding: 16px;
+    }
+    .stat-label { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+    .stat-value { font-size: 20px; font-weight: 800; }
+    .stat-change { font-size: 11px; color: var(--success); margin-top: 4px; }
+
+    /* ── CHART BARS ── */
+    .chart { display: flex; align-items: flex-end; gap: 8px; height: 100px; padding: 0 4px; }
+    .bar { flex: 1; border-radius: 4px 4px 0 0; background: linear-gradient(to top, var(--brand), var(--brand-light)); opacity: .7; }
+
+    /* ── PRODUCT TYPES ── */
+    .types-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; max-width: 1280px; margin: 0 auto; width: 100%; }
+    .type-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 16px; padding: 32px 24px; text-align: center;
+      transition: transform .2s, border-color .2s;
+    }
+    .type-card:hover { transform: translateY(-4px); border-color: rgba(124,58,237,.4); }
+    .type-icon { font-size: 40px; margin-bottom: 16px; }
+    .type-card h3 { margin-bottom: 10px; }
+    .type-card p { font-size: 13px; }
+    .type-tags { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 16px; }
+    .tag {
+      background: rgba(255,255,255,.06); border: 1px solid var(--border);
+      color: var(--muted); padding: 3px 10px; border-radius: 100px; font-size: 11px;
+    }
+
+    /* ── WALLET/EARNINGS ── */
+    .wallet-card {
+      background: linear-gradient(135deg, rgba(124,58,237,.2), rgba(6,182,212,.1));
+      border: 1px solid rgba(124,58,237,.3); border-radius: 20px; padding: 32px;
+    }
+    .wallet-balance { font-size: 42px; font-weight: 900; margin-bottom: 8px; }
+    .wallet-row { display: flex; gap: 32px; margin-top: 24px; }
+    .wallet-stat h4 { font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+    .wallet-stat p { font-size: 20px; font-weight: 800; }
+
+    /* ── ADMIN TABS ── */
+    .admin-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; }
+    .admin-tab {
+      padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600;
+      background: rgba(255,255,255,.05); border: 1px solid var(--border); color: var(--muted);
+    }
+    .admin-tab.active { background: rgba(124,58,237,.2); border-color: rgba(124,58,237,.4); color: var(--brand-light); }
+
+    /* ── ROLE DIAGRAM ── */
+    .roles-diagram { display: flex; gap: 20px; max-width: 1000px; margin: 48px auto 0; }
+    .role-column { flex: 1; }
+    .role-header {
+      text-align: center; padding: 16px;
+      background: linear-gradient(135deg, var(--brand), var(--accent));
+      border-radius: 12px 12px 0 0; font-weight: 700; font-size: 14px;
+    }
+    .role-items { background: var(--card); border: 1px solid var(--border); border-top: none; border-radius: 0 0 12px 12px; }
+    .role-item { display: flex; align-items: center; gap: 10px; padding: 10px 16px; font-size: 13px; border-bottom: 1px solid var(--border); color: var(--muted); }
+    .role-item:last-child { border-bottom: none; }
+    .role-item span:first-child { font-size: 16px; }
+
+    /* ── TECH STACK ── */
+    .tech-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; max-width: 1280px; margin: 0 auto; width: 100%; }
+    .tech-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 20px 16px; text-align: center;
+    }
+    .tech-logo { font-size: 28px; margin-bottom: 10px; }
+    .tech-name { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+    .tech-role { font-size: 11px; color: var(--muted); }
+
+    /* ── SECURITY SECTION ── */
+    .security-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 900px; margin: 0 auto; }
+    .sec-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 20px;
+      display: flex; align-items: flex-start; gap: 14px;
+    }
+    .sec-icon { font-size: 28px; flex-shrink: 0; }
+    .sec-card h4 { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+    .sec-card p { font-size: 13px; }
+
+    /* ── CTA FINAL ── */
+    #cta {
+      background: radial-gradient(ellipse 60% 80% at 50% 50%, rgba(124,58,237,.3) 0%, transparent 70%);
+      text-align: center; align-items: center;
+    }
+    .cta-inner { max-width: 600px; }
+    .cta-inner p { font-size: 18px; margin: 20px 0 40px; }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border); padding: 32px 48px;
+      display: flex; justify-content: space-between; align-items: center;
+      color: var(--muted); font-size: 13px;
+    }
+
+    /* ── DIVIDER ── */
+    .divider { height: 1px; background: var(--border); max-width: 1280px; margin: 0 auto; }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: rgba(124,58,237,.4); border-radius: 3px; }
+
+    /* ── ANIMATIONS ── */
+    @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+    @keyframes pulse { 0%,100% { opacity:.6; } 50% { opacity:1; } }
+    .float { animation: float 4s ease-in-out infinite; }
+    .pulse { animation: pulse 2s ease-in-out infinite; }
+
+    /* ── GLOW ── */
+    .glow { box-shadow: 0 0 40px rgba(124,58,237,.25); }
+
+    /* ── TABLE ── */
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; padding: 10px 16px; color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--border); }
+    td { padding: 10px 16px; border-bottom: 1px solid rgba(255,255,255,.04); }
+    tr:hover td { background: rgba(255,255,255,.02); }
+    .badge-green { background: rgba(16,185,129,.15); color: #10b981; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+    .badge-purple { background: rgba(124,58,237,.15); color: var(--brand-light); padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+    .badge-amber { background: rgba(245,158,11,.15); color: #f59e0b; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+    .badge-cyan { background: rgba(6,182,212,.15); color: #06b6d4; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════ NAV ══════════════════════════════════════════ -->
+<nav>
+  <div class="nav-logo">
+    <div class="logo-icon">S</div>
+    Sellar
+  </div>
+  <ul class="nav-links">
+    <li><a href="#features">Features</a></li>
+    <li><a href="#join">How to Join</a></li>
+    <li><a href="#list">List Products</a></li>
+    <li><a href="#purchase">Purchase</a></li>
+    <li><a href="#dashboard">Dashboard</a></li>
+    <li><a href="#admin">Admin</a></li>
+    <li><a href="#tech">Tech</a></li>
+  </ul>
+  <a href="#cta" class="nav-badge">Get Started →</a>
+</nav>
+
+
+<!-- ══════════════════════════════════════════ HERO ══════════════════════════════════════════ -->
+<section id="hero">
+  <div class="hero-grid">
+    <div>
+      <div class="section-label">🚀 Creator Monetization Platform</div>
+      <h1>Sell Digital<br/><span class="gradient-text">Products & Webinars</span><br/>Effortlessly</h1>
+      <p style="font-size:18px;margin-top:20px;max-width:480px;">India's creator-first marketplace. Launch your storefront, list digital products, schedule webinars, and get paid — all in minutes.</p>
+      <div class="hero-kpis">
+        <div class="kpi-pill"><div class="kpi-num">4</div><div class="kpi-lbl">Product Types</div></div>
+        <div class="kpi-pill"><div class="kpi-num">0%</div><div class="kpi-lbl">Setup Cost</div></div>
+        <div class="kpi-pill"><div class="kpi-num">INR</div><div class="kpi-lbl">Local Payments</div></div>
+        <div class="kpi-pill"><div class="kpi-num">∞</div><div class="kpi-lbl">Products</div></div>
+      </div>
+      <div class="hero-cta">
+        <a href="#join" class="btn-primary">Start Selling → </a>
+        <a href="#purchase" class="btn-outline">Shop Products</a>
+      </div>
+    </div>
+
+    <!-- Hero App Mockup -->
+    <div class="float">
+      <div class="mockup-frame glow">
+        <div class="mockup-bar">
+          <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+          <div class="url-bar">🔒 sellar.app/ayush</div>
+        </div>
+        <!-- Storefront preview -->
+        <div style="padding:20px;background:#0d0d14;">
+          <!-- Creator profile -->
+          <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px;">
+            <div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#06b6d4);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;flex-shrink:0;">A</div>
+            <div>
+              <div style="font-weight:700;font-size:15px;">Ayush Anand</div>
+              <div style="font-size:12px;color:#94a3b8;">@ayush · Finance & Tech Creator</div>
+              <div style="display:flex;gap:8px;margin-top:4px;">
+                <span style="font-size:10px;color:#94a3b8;">📷 Instagram</span>
+                <span style="font-size:10px;color:#94a3b8;">🐦 Twitter</span>
+              </div>
+            </div>
+          </div>
+          <!-- Products -->
+          <div style="font-size:11px;color:#94a3b8;margin-bottom:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;">Products</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:10px;overflow:hidden;">
+              <div style="height:70px;background:linear-gradient(135deg,#1e1b4b,#312e81);display:flex;align-items:center;justify-content:center;font-size:24px;">📊</div>
+              <div style="padding:10px;">
+                <div style="font-size:11px;font-weight:600;">Stock Market Course</div>
+                <div style="font-size:13px;font-weight:800;color:#a78bfa;margin-top:2px;">₹999</div>
+                <div style="margin-top:8px;background:linear-gradient(135deg,#7c3aed,#06b6d4);border-radius:6px;padding:5px;text-align:center;font-size:10px;font-weight:700;color:#fff;">Buy Now</div>
+              </div>
+            </div>
+            <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:10px;overflow:hidden;">
+              <div style="height:70px;background:linear-gradient(135deg,#064e3b,#065f46);display:flex;align-items:center;justify-content:center;font-size:24px;">🎯</div>
+              <div style="padding:10px;">
+                <div style="font-size:11px;font-weight:600;">IPO Framework</div>
+                <div style="font-size:13px;font-weight:800;color:#a78bfa;margin-top:2px;">₹599</div>
+                <div style="margin-top:8px;background:linear-gradient(135deg,#7c3aed,#06b6d4);border-radius:6px;padding:5px;text-align:center;font-size:10px;font-weight:700;color:#fff;">Buy Now</div>
+              </div>
+            </div>
+          </div>
+          <!-- Webinar badge -->
+          <div style="margin-top:10px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.25);border-radius:10px;padding:10px;display:flex;align-items:center;gap:10px;">
+            <div style="font-size:20px;">🎙️</div>
+            <div>
+              <div style="font-size:11px;font-weight:700;color:#f59e0b;">LIVE WEBINAR · May 1, 2026</div>
+              <div style="font-size:10px;color:#94a3b8;">Advanced Options Trading — ₹799</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════════════════════════════════ FEATURES ══════════════════════════════════════════ -->
+<section id="features" style="background:radial-gradient(ellipse 50% 50% at 80% 50%, rgba(6,182,212,.1) 0%, transparent 60%);">
+  <div style="max-width:1280px;margin:0 auto;width:100%;">
+    <div class="section-label">✨ Platform Features</div>
+    <h2 style="margin-bottom:16px;">Everything You Need<br/><span class="gradient-text">to Monetize Your Expertise</span></h2>
+    <p style="margin-bottom:48px;max-width:520px;">From storefront creation to payment processing — Sellar handles the entire commerce lifecycle for Indian creators.</p>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feat-icon purple">🏪</div>
+        <h3>Instant Storefront</h3>
+        <p>Get a personalized public URL at <strong style="color:#a78bfa;">sellar.app/yourhandle</strong> in seconds. No design skills needed — your products look great automatically.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feat-icon cyan">💳</div>
+        <h3>Cashfree Checkout</h3>
+        <p>Built-in UPI, net banking, debit/credit cards & digital wallets via Cashfree Drop-in. Buyers complete payment without leaving your storefront.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feat-icon amber">🎙️</div>
+        <h3>Webinar Scheduling</h3>
+        <p>Schedule live sessions with capacity limits, early-join windows, and auto-generated secure join tokens for enrolled buyers.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feat-icon green">💰</div>
+        <h3>Instant Wallet</h3>
+        <p>Earnings land in your creator wallet after every sale. Withdraw via UPI, IMPS/NEFT, or bank transfer at any time.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feat-icon pink">📊</div>
+        <h3>Analytics Dashboard</h3>
+        <p>Track monthly earnings, lifetime revenue, recent transactions, and storefront visitors — all in one beautiful dashboard.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feat-icon blue">🔐</div>
+        <h3>Row-Level Security</h3>
+        <p>PostgreSQL RLS policies ensure creators can only access their own data — secure by default, zero client-side enforcement needed.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feat-icon purple">📚</div>
+        <h3>Buyer Library</h3>
+        <p>Buyers get a personal library of all purchased products with download links, access URLs, and webinar join buttons.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feat-icon amber">⭐</div>
+        <h3>Featured Creators</h3>
+        <p>Admin-curated Top Creators listing drives discovery. Reorder featured creators and manage spotlights from the admin portal.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feat-icon green">🛡️</div>
+        <h3>Commission Split</h3>
+        <p>Atomic PostgreSQL stored procedure splits every payment — platform commission deducted, creator wallet credited in a single race-condition-safe transaction.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════════════════════════════════ HOW TO JOIN ══════════════════════════════════════════ -->
+<section id="join">
+  <div class="flow-container">
+    <div class="section-label">👤 Getting Started</div>
+    <h2 style="margin-bottom:16px;">How to <span class="gradient-text">Join Sellar</span></h2>
+    <p style="margin-bottom:48px;max-width:520px;">Two types of accounts. One platform. Start as a buyer or launch your creator storefront — the process takes under 2 minutes.</p>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:48px;">
+      <!-- Buyer Path -->
+      <div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:24px;">
+          <div style="width:36px;height:36px;background:rgba(6,182,212,.15);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;">🛍️</div>
+          <h3 style="font-size:18px;">Buyer Account</h3>
+        </div>
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-content">
+              <h3>Visit /auth/signup</h3>
+              <p>Enter your email address and choose a secure password.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-content">
+              <h3>Verify Email</h3>
+              <p>Click the link in your inbox to activate your account instantly.</p>
+              <span class="step-badge">✅ Supabase Auth</span>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-content">
+              <h3>Start Browsing</h3>
+              <p>Explore creator storefronts, discover products, and purchase with one click.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">4</div>
+            <div class="step-content">
+              <h3>Access /library</h3>
+              <p>All purchased products appear instantly in your personal library with download & access links.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Creator Path -->
+      <div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:24px;">
+          <div style="width:36px;height:36px;background:rgba(124,58,237,.15);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;">🚀</div>
+          <h3 style="font-size:18px;">Creator Account</h3>
+        </div>
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-content">
+              <h3>Visit /become-a-creator</h3>
+              <p>Available to new signups and existing buyers looking to upgrade.</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-content">
+              <h3>Choose Your Handle</h3>
+              <p>Pick a unique <strong style="color:#a78bfa;">@handle</strong> — this becomes your public storefront URL. Real-time availability check included.</p>
+              <span class="step-badge">🔍 sellar.app/yourhandle</span>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-content">
+              <h3>Complete Profile</h3>
+              <p>Add display name, bio, avatar, phone, and social links (Instagram, X, LinkedIn, Website).</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">4</div>
+            <div class="step-content">
+              <h3>Storefront is Live!</h3>
+              <p>Your public storefront is immediately accessible. Share the link and start listing products.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Signup form mockup -->
+    <div style="margin-top:48px;max-width:480px;margin-left:auto;margin-right:auto;">
+      <div class="mockup-frame">
+        <div class="mockup-bar">
+          <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+          <div class="url-bar">🔒 sellar.app/become-a-creator</div>
+        </div>
+        <div style="padding:32px;background:#0d0d14;">
+          <div style="text-align:center;margin-bottom:24px;">
+            <div style="width:56px;height:56px;background:linear-gradient(135deg,#7c3aed,#06b6d4);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:900;color:#fff;margin:0 auto 12px;">S</div>
+            <div style="font-size:20px;font-weight:800;">Become a Creator</div>
+            <div style="font-size:13px;color:#94a3b8;margin-top:4px;">Launch your storefront in minutes</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div>
+              <div style="font-size:12px;color:#94a3b8;margin-bottom:6px;font-weight:600;">Display Name</div>
+              <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:10px 14px;font-size:13px;color:#94a3b8;">Ayush Anand</div>
+            </div>
+            <div>
+              <div style="font-size:12px;color:#94a3b8;margin-bottom:6px;font-weight:600;">Your Handle</div>
+              <div style="background:rgba(255,255,255,.06);border:1px solid rgba(16,185,129,.4);border-radius:8px;padding:10px 14px;font-size:13px;display:flex;justify-content:space-between;align-items:center;">
+                <span style="color:#94a3b8;">sellar.app/<strong style="color:#fff;">ayush</strong></span>
+                <span style="color:#10b981;font-size:11px;font-weight:700;">✓ Available</span>
+              </div>
+            </div>
+            <div>
+              <div style="font-size:12px;color:#94a3b8;margin-bottom:6px;font-weight:600;">Email</div>
+              <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:10px 14px;font-size:13px;color:#94a3b8;">ayush@example.com</div>
+            </div>
+            <div>
+              <div style="font-size:12px;color:#94a3b8;margin-bottom:6px;font-weight:600;">Password</div>
+              <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:10px 14px;font-size:13px;color:#94a3b8;">••••••••••</div>
+            </div>
+            <div style="background:linear-gradient(135deg,#7c3aed,#06b6d4);border-radius:10px;padding:12px;text-align:center;font-weight:700;font-size:14px;cursor:pointer;margin-top:4px;">Create My Storefront 🚀</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Role matrix -->
+    <div class="roles-diagram" style="margin-top:56px;">
+      <div class="role-column">
+        <div class="role-header" style="background:linear-gradient(135deg,#06b6d4,#0891b2);">🛍️ Buyer</div>
+        <div class="role-items">
+          <div class="role-item"><span>🔍</span> Browse creator storefronts</div>
+          <div class="role-item"><span>💳</span> Purchase products</div>
+          <div class="role-item"><span>📚</span> Access /library</div>
+          <div class="role-item"><span>🎙️</span> Join webinars</div>
+          <div class="role-item"><span>⬆️</span> Upgrade to creator</div>
+        </div>
+      </div>
+      <div class="role-column">
+        <div class="role-header" style="background:linear-gradient(135deg,#7c3aed,#6d28d9);">🚀 Creator</div>
+        <div class="role-items">
+          <div class="role-item"><span>🏪</span> Public storefront URL</div>
+          <div class="role-item"><span>📦</span> List & manage products</div>
+          <div class="role-item"><span>💰</span> Creator wallet & earnings</div>
+          <div class="role-item"><span>📊</span> Analytics dashboard</div>
+          <div class="role-item"><span>🏦</span> Withdrawal requests</div>
+        </div>
+      </div>
+      <div class="role-column">
+        <div class="role-header" style="background:linear-gradient(135deg,#f59e0b,#d97706);">🛡️ Admin</div>
+        <div class="role-items">
+          <div class="role-item"><span>👥</span> Manage all creators</div>
+          <div class="role-item"><span>💹</span> Set commission rates</div>
+          <div class="role-item"><span>💸</span> Process withdrawals</div>
+          <div class="role-item"><span>📈</span> Platform analytics</div>
+          <div class="role-item"><span>⭐</span> Feature creators</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════════════════════════════════ PRODUCT TYPES ══════════════════════════════════════════ -->
+<section id="products" style="background:radial-gradient(ellipse 60% 50% at 20% 80%, rgba(245,158,11,.08) 0%, transparent 60%);">
+  <div style="max-width:1280px;margin:0 auto;width:100%;">
+    <div class="section-label">📦 Product Catalog</div>
+    <h2 style="margin-bottom:16px;">Four Types of<br/><span class="gradient-text">Digital Products</span></h2>
+    <p style="margin-bottom:48px;max-width:520px;">Sell anything from downloadable files to live webinar sessions — Sellar supports every format of digital expertise.</p>
+    <div class="types-grid">
+      <div class="type-card">
+        <div class="type-icon">📥</div>
+        <h3>Digital Downloads</h3>
+        <p>eBooks, PDFs, templates, guides, spreadsheets — anything buyers can download instantly after purchase.</p>
+        <div class="type-tags">
+          <span class="tag">PDF</span><span class="tag">Template</span><span class="tag">eBook</span><span class="tag">Guide</span>
+        </div>
+      </div>
+      <div class="type-card">
+        <div class="type-icon">🎙️</div>
+        <h3>Live Webinars</h3>
+        <p>Scheduled sessions with capacity limits, early-join windows, and secure auto-generated join tokens.</p>
+        <div class="type-tags">
+          <span class="tag">Scheduled</span><span class="tag">Capacity</span><span class="tag">Join Token</span>
+        </div>
+      </div>
+      <div class="type-card">
+        <div class="type-icon">👤</div>
+        <h3>1-on-1 Sessions</h3>
+        <p>Personal consulting or coaching sessions. Buyers get an access URL after purchase to book their slot.</p>
+        <div class="type-tags">
+          <span class="tag">Consulting</span><span class="tag">Coaching</span><span class="tag">Mentoring</span>
+        </div>
+      </div>
+      <div class="type-card">
+        <div class="type-icon">📱</div>
+        <h3>Telegram Access</h3>
+        <p>Exclusive Telegram community or channel access. Share private invite links with paying members.</p>
+        <div class="type-tags">
+          <span class="tag">Community</span><span class="tag">Channel</span><span class="tag">Invite Link</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sample products -->
+    <div style="margin-top:48px;">
+      <div style="font-size:13px;color:#94a3b8;margin-bottom:16px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;">Sample Products on the Platform</div>
+      <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:12px;">
+        <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:10px;overflow:hidden;">
+          <div style="height:80px;background:linear-gradient(135deg,#1e1b4b,#312e81);display:flex;align-items:center;justify-content:center;font-size:28px;">📊</div>
+          <div style="padding:10px;"><div style="font-size:11px;font-weight:600;margin-bottom:2px;">Stock Course</div><div style="font-size:12px;font-weight:800;color:#a78bfa;">₹999</div></div>
+        </div>
+        <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:10px;overflow:hidden;">
+          <div style="height:80px;background:linear-gradient(135deg,#064e3b,#065f46);display:flex;align-items:center;justify-content:center;font-size:28px;">💹</div>
+          <div style="padding:10px;"><div style="font-size:11px;font-weight:600;margin-bottom:2px;">Finance Class</div><div style="font-size:12px;font-weight:800;color:#a78bfa;">₹1,499</div></div>
+        </div>
+        <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:10px;overflow:hidden;">
+          <div style="height:80px;background:linear-gradient(135deg,#4c1d95,#7c3aed);display:flex;align-items:center;justify-content:center;font-size:28px;">⚛️</div>
+          <div style="padding:10px;"><div style="font-size:11px;font-weight:600;margin-bottom:2px;">React Mastery</div><div style="font-size:12px;font-weight:800;color:#a78bfa;">₹799</div></div>
+        </div>
+        <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:10px;overflow:hidden;">
+          <div style="height:80px;background:linear-gradient(135deg,#78350f,#92400e);display:flex;align-items:center;justify-content:center;font-size:28px;">🏏</div>
+          <div style="padding:10px;"><div style="font-size:11px;font-weight:600;margin-bottom:2px;">Cricket Fitness</div><div style="font-size:12px;font-weight:800;color:#a78bfa;">₹699</div></div>
+        </div>
+        <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:10px;overflow:hidden;">
+          <div style="height:80px;background:linear-gradient(135deg,#065f46,#047857);display:flex;align-items:center;justify-content:center;font-size:28px;">📋</div>
+          <div style="padding:10px;"><div style="font-size:11px;font-weight:600;margin-bottom:2px;">SaaS Starter</div><div style="font-size:12px;font-weight:800;color:#a78bfa;">₹1,199</div></div>
+        </div>
+        <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:10px;overflow:hidden;">
+          <div style="height:80px;background:linear-gradient(135deg,#1e1b4b,#4c1d95);display:flex;align-items:center;justify-content:center;font-size:28px;">🎙️</div>
+          <div style="padding:10px;"><div style="font-size:11px;font-weight:600;margin-bottom:2px;">Options Webinar</div><div style="font-size:12px;font-weight:800;color:#f59e0b;">Live</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════════════════════════════════ LIST PRODUCTS ══════════════════════════════════════════ -->
+<section id="list">
+  <div class="flow-container">
+    <div class="section-label">📦 Creator Flow</div>
+    <h2 style="margin-bottom:16px;">How to <span class="gradient-text">List a Product</span></h2>
+    <p style="margin-bottom:48px;max-width:520px;">Listing a product takes less than 2 minutes. Fill in the details, upload an image, set your price — it's live instantly.</p>
+
+    <div class="flow-grid">
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <h3>Go to Creator Dashboard</h3>
+            <p>Navigate to <strong style="color:#a78bfa;">/creator/products</strong> from the creator layout sidebar.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <h3>Click "Add Product"</h3>
+            <p>Opens the product creation modal with all required fields.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <h3>Choose Product Type</h3>
+            <p>Select: <strong>Digital Download</strong>, <strong>Webinar</strong>, <strong>Session</strong>, or <strong>Telegram Access</strong>.</p>
+            <span class="step-badge">📦 4 product kinds</span>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-content">
+            <h3>Fill Details</h3>
+            <p>Title, description, price (INR), product image upload, content URL or access link.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">5</div>
+          <div class="step-content">
+            <h3>For Webinars: Schedule It</h3>
+            <p>Set date/time, max capacity, duration, early-join minutes, and late-join window.</p>
+            <span class="step-badge">🎙️ Webinar-specific</span>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">6</div>
+          <div class="step-content">
+            <h3>Publish — It's Live!</h3>
+            <p>Product appears on your storefront immediately. Hide or re-activate at any time without deleting.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Product listing mockup -->
+      <div>
+        <div class="mockup-frame">
+          <div class="mockup-bar">
+            <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+            <div class="url-bar">🔒 sellar.app/creator/products</div>
+          </div>
+          <div style="padding:20px;background:#0d0d14;">
+            <!-- Header -->
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+              <div>
+                <div style="font-weight:800;font-size:16px;">My Products</div>
+                <div style="font-size:12px;color:#94a3b8;margin-top:2px;">6 products · 3 active</div>
+              </div>
+              <div style="background:linear-gradient(135deg,#7c3aed,#06b6d4);border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;">+ Add Product</div>
+            </div>
+            <!-- Product rows -->
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:12px;display:flex;align-items:center;gap:12px;">
+                <div style="width:48px;height:48px;background:linear-gradient(135deg,#1e1b4b,#312e81);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">📊</div>
+                <div style="flex:1;">
+                  <div style="font-size:13px;font-weight:600;">Stock Market Course</div>
+                  <div style="font-size:11px;color:#94a3b8;margin-top:2px;">Digital Download · <strong style="color:#a78bfa;">₹999</strong> · 47 sales</div>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center;">
+                  <div style="width:8px;height:8px;background:#10b981;border-radius:50%;"></div>
+                  <span style="font-size:11px;color:#10b981;font-weight:600;">Active</span>
+                  <div style="background:rgba(255,255,255,.07);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;">Edit</div>
+                </div>
+              </div>
+              <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:12px;display:flex;align-items:center;gap:12px;">
+                <div style="width:48px;height:48px;background:linear-gradient(135deg,#1e1b4b,#4c1d95);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">🎙️</div>
+                <div style="flex:1;">
+                  <div style="font-size:13px;font-weight:600;">Options Trading Webinar</div>
+                  <div style="font-size:11px;color:#94a3b8;margin-top:2px;">Webinar · <strong style="color:#f59e0b;">₹799</strong> · May 1, 2026 · 30/50 seats</div>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center;">
+                  <div style="width:8px;height:8px;background:#f59e0b;border-radius:50%;"></div>
+                  <span style="font-size:11px;color:#f59e0b;font-weight:600;">Upcoming</span>
+                  <div style="background:rgba(255,255,255,.07);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;">Edit</div>
+                </div>
+              </div>
+              <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:12px;display:flex;align-items:center;gap:12px;">
+                <div style="width:48px;height:48px;background:linear-gradient(135deg,#065f46,#047857);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">📋</div>
+                <div style="flex:1;">
+                  <div style="font-size:13px;font-weight:600;">SaaS Starter Template</div>
+                  <div style="font-size:11px;color:#94a3b8;margin-top:2px;">Digital Download · <strong style="color:#a78bfa;">₹1,199</strong> · 23 sales</div>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center;">
+                  <div style="width:8px;height:8px;background:#10b981;border-radius:50%;"></div>
+                  <span style="font-size:11px;color:#10b981;font-weight:600;">Active</span>
+                  <div style="background:rgba(255,255,255,.07);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;">Edit</div>
+                </div>
+              </div>
+            </div>
+            <!-- Add product modal hint -->
+            <div style="margin-top:12px;background:rgba(124,58,237,.08);border:1px dashed rgba(124,58,237,.3);border-radius:10px;padding:16px;text-align:center;cursor:pointer;">
+              <div style="font-size:22px;margin-bottom:6px;">+</div>
+              <div style="font-size:12px;color:#a78bfa;font-weight:600;">Add New Product</div>
+              <div style="font-size:11px;color:#94a3b8;margin-top:2px;">Digital, Webinar, Session, or Telegram</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Webinar scheduling card -->
+        <div style="margin-top:16px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:12px;padding:16px;">
+          <div style="font-size:13px;font-weight:700;color:#f59e0b;margin-bottom:10px;">🎙️ Webinar Scheduling Fields</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div style="background:rgba(255,255,255,.04);border-radius:8px;padding:8px 12px;font-size:11px;color:#94a3b8;">📅 Date & Time</div>
+            <div style="background:rgba(255,255,255,.04);border-radius:8px;padding:8px 12px;font-size:11px;color:#94a3b8;">👥 Max Capacity</div>
+            <div style="background:rgba(255,255,255,.04);border-radius:8px;padding:8px 12px;font-size:11px;color:#94a3b8;">⏱️ Duration (mins)</div>
+            <div style="background:rgba(255,255,255,.04);border-radius:8px;padding:8px 12px;font-size:11px;color:#94a3b8;">🕐 Early Join Window</div>
+            <div style="background:rgba(255,255,255,.04);border-radius:8px;padding:8px 12px;font-size:11px;color:#94a3b8;">⌛ Late Join Window</div>
+            <div style="background:rgba(255,255,255,.04);border-radius:8px;padding:8px 12px;font-size:11px;color:#94a3b8;">🔗 Meeting URL</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════════════════════════════════ PURCHASE ══════════════════════════════════════════ -->
+<section id="purchase" style="background:radial-gradient(ellipse 50% 60% at 90% 30%, rgba(124,58,237,.12) 0%, transparent 55%);">
+  <div class="flow-container">
+    <div class="section-label">💳 Buyer Flow</div>
+    <h2 style="margin-bottom:16px;">How to <span class="gradient-text">Purchase a Product</span></h2>
+    <p style="margin-bottom:48px;max-width:520px;">From storefront to library in under 60 seconds. Cashfree Drop-in checkout supports UPI, net banking, cards, and digital wallets.</p>
+
+    <!-- Payment flow diagram -->
+    <div class="payment-flow">
+      <div class="pay-step">
+        <div class="pay-icon">🏪</div>
+        <div class="pay-title">Browse Storefront</div>
+        <div class="pay-desc">Visit /:handle<br/>Pick a product</div>
+      </div>
+      <div class="pay-step">
+        <div class="pay-icon">🔑</div>
+        <div class="pay-title">Sign In / Sign Up</div>
+        <div class="pay-desc">Quick auth if<br/>not logged in</div>
+      </div>
+      <div class="pay-step">
+        <div class="pay-icon">💳</div>
+        <div class="pay-title">Cashfree Checkout</div>
+        <div class="pay-desc">Drop-in modal<br/>UPI / Cards / Net Banking</div>
+      </div>
+      <div class="pay-step">
+        <div class="pay-icon">✅</div>
+        <div class="pay-title">Payment Verified</div>
+        <div class="pay-desc">Webhook + polling<br/>confirms payment</div>
+      </div>
+      <div class="pay-step">
+        <div class="pay-icon">📚</div>
+        <div class="pay-title">Library Access</div>
+        <div class="pay-desc">Download links<br/>and join buttons</div>
+      </div>
+    </div>
+
+    <!-- Storefront + Checkout mockups side by side -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:48px;">
+
+      <!-- Storefront -->
+      <div>
+        <div style="font-size:12px;color:#94a3b8;margin-bottom:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;">Step 1 — Creator Storefront</div>
+        <div class="mockup-frame">
+          <div class="mockup-bar">
+            <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+            <div class="url-bar">🔒 sellar.app/priya</div>
+          </div>
+          <div style="padding:20px;background:#0d0d14;">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+              <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#ec4899,#f59e0b);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;flex-shrink:0;">P</div>
+              <div>
+                <div style="font-weight:700;font-size:14px;">Priya Sharma</div>
+                <div style="font-size:11px;color:#94a3b8;">@priya · Finance Creator</div>
+              </div>
+            </div>
+            <div style="font-size:11px;color:#94a3b8;margin-bottom:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;">Available Products</div>
+            <!-- Product cards -->
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:14px;display:flex;align-items:center;gap:12px;">
+                <div style="width:44px;height:44px;background:linear-gradient(135deg,#1e1b4b,#312e81);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">📈</div>
+                <div style="flex:1;">
+                  <div style="font-size:13px;font-weight:600;">IPO Framework Guide</div>
+                  <div style="font-size:11px;color:#94a3b8;">PDF Download · Instant Access</div>
+                </div>
+                <div>
+                  <div style="font-size:14px;font-weight:800;color:#a78bfa;margin-bottom:6px;">₹599</div>
+                  <div style="background:linear-gradient(135deg,#7c3aed,#06b6d4);border-radius:6px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;">Buy Now</div>
+                </div>
+              </div>
+              <div style="background:rgba(255,255,255,.05);border:1px solid rgba(245,158,11,.2);border-radius:10px;padding:14px;display:flex;align-items:center;gap:12px;">
+                <div style="width:44px;height:44px;background:linear-gradient(135deg,#78350f,#b45309);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">🎙️</div>
+                <div style="flex:1;">
+                  <div style="font-size:13px;font-weight:600;">Mutual Fund Masterclass</div>
+                  <div style="font-size:11px;color:#f59e0b;">🔴 LIVE · Apr 20 · 28/50 seats</div>
+                </div>
+                <div>
+                  <div style="font-size:14px;font-weight:800;color:#f59e0b;margin-bottom:6px;">₹799</div>
+                  <div style="background:linear-gradient(135deg,#f59e0b,#d97706);border-radius:6px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;">Register</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Checkout Modal -->
+      <div>
+        <div style="font-size:12px;color:#94a3b8;margin-bottom:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;">Step 3 — Cashfree Drop-In Checkout</div>
+        <div class="mockup-frame">
+          <div class="mockup-bar">
+            <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+            <div class="url-bar">🔒 sellar.app/priya · Checkout</div>
+          </div>
+          <div style="padding:20px;background:#0d0d14;">
+            <!-- Order summary -->
+            <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:14px;margin-bottom:16px;">
+              <div style="font-size:11px;color:#94a3b8;margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;">Order Summary</div>
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div>
+                  <div style="font-size:13px;font-weight:600;">IPO Framework Guide</div>
+                  <div style="font-size:11px;color:#94a3b8;">Priya Sharma</div>
+                </div>
+                <div style="font-size:16px;font-weight:800;color:#a78bfa;">₹599</div>
+              </div>
+            </div>
+            <!-- Payment methods -->
+            <div style="font-size:11px;color:#94a3b8;margin-bottom:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;">Payment Method</div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div style="background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.4);border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:10px;">
+                <div style="width:16px;height:16px;border-radius:50%;background:#7c3aed;display:flex;align-items:center;justify-content:center;"><div style="width:6px;height:6px;border-radius:50%;background:#fff;"></div></div>
+                <span style="font-size:13px;">📱 UPI</span>
+                <span style="font-size:11px;color:#94a3b8;margin-left:auto;">GPay, PhonePe, Paytm</span>
+              </div>
+              <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:10px;">
+                <div style="width:16px;height:16px;border-radius:50%;border:1px solid rgba(255,255,255,.2);"></div>
+                <span style="font-size:13px;">🏦 Net Banking</span>
+              </div>
+              <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:10px;">
+                <div style="width:16px;height:16px;border-radius:50%;border:1px solid rgba(255,255,255,.2);"></div>
+                <span style="font-size:13px;">💳 Card</span>
+              </div>
+            </div>
+            <div style="background:linear-gradient(135deg,#7c3aed,#06b6d4);border-radius:10px;padding:12px;text-align:center;font-weight:700;font-size:14px;cursor:pointer;margin-top:14px;">Pay ₹599 Securely 🔐</div>
+            <div style="text-align:center;font-size:10px;color:#94a3b8;margin-top:8px;">Secured by Cashfree · RBI Compliant</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Library mockup -->
+    <div style="margin-top:32px;">
+      <div style="font-size:12px;color:#94a3b8;margin-bottom:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;">Step 5 — Your Library (/library)</div>
+      <div class="mockup-frame">
+        <div class="mockup-bar">
+          <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+          <div class="url-bar">🔒 sellar.app/library</div>
+        </div>
+        <div style="padding:20px;background:#0d0d14;">
+          <div style="font-weight:800;font-size:15px;margin-bottom:4px;">My Library</div>
+          <div style="font-size:12px;color:#94a3b8;margin-bottom:16px;">4 purchased products</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+            <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:10px;overflow:hidden;">
+              <div style="height:70px;background:linear-gradient(135deg,#1e1b4b,#312e81);display:flex;align-items:center;justify-content:center;font-size:24px;">📈</div>
+              <div style="padding:10px;"><div style="font-size:11px;font-weight:600;margin-bottom:4px;">IPO Framework</div><div style="background:rgba(16,185,129,.15);border-radius:6px;padding:4px 8px;font-size:10px;font-weight:700;color:#10b981;text-align:center;cursor:pointer;">⬇ Download</div></div>
+            </div>
+            <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:10px;overflow:hidden;">
+              <div style="height:70px;background:linear-gradient(135deg,#064e3b,#065f46);display:flex;align-items:center;justify-content:center;font-size:24px;">📊</div>
+              <div style="padding:10px;"><div style="font-size:11px;font-weight:600;margin-bottom:4px;">Stock Course</div><div style="background:rgba(16,185,129,.15);border-radius:6px;padding:4px 8px;font-size:10px;font-weight:700;color:#10b981;text-align:center;cursor:pointer;">⬇ Download</div></div>
+            </div>
+            <div style="background:rgba(255,255,255,.04);border:1px solid rgba(245,158,11,.2);border-radius:10px;overflow:hidden;">
+              <div style="height:70px;background:linear-gradient(135deg,#78350f,#b45309);display:flex;align-items:center;justify-content:center;font-size:24px;">🎙️</div>
+              <div style="padding:10px;"><div style="font-size:11px;font-weight:600;margin-bottom:4px;">Options Webinar</div><div style="background:rgba(245,158,11,.15);border-radius:6px;padding:4px 8px;font-size:10px;font-weight:700;color:#f59e0b;text-align:center;cursor:pointer;">📅 Apr 20 · Join</div></div>
+            </div>
+            <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:10px;overflow:hidden;">
+              <div style="height:70px;background:linear-gradient(135deg,#4c1d95,#7c3aed);display:flex;align-items:center;justify-content:center;font-size:24px;">📱</div>
+              <div style="padding:10px;"><div style="font-size:11px;font-weight:600;margin-bottom:4px;">Telegram Access</div><div style="background:rgba(6,182,212,.15);border-radius:6px;padding:4px 8px;font-size:10px;font-weight:700;color:#06b6d4;text-align:center;cursor:pointer;">🔗 Join Group</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Payment pipeline technical flow -->
+    <div style="margin-top:32px;background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:14px;padding:24px;">
+      <div style="font-size:13px;font-weight:700;margin-bottom:16px;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;">⚙️ Under the Hood — Payment Pipeline</div>
+      <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;align-items:center;">
+        <div style="text-align:center;padding:12px;background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.2);border-radius:8px;">
+          <div style="font-size:16px;margin-bottom:4px;">🛒</div>
+          <div style="font-size:10px;font-weight:700;color:#a78bfa;">Create Order</div>
+          <div style="font-size:9px;color:#94a3b8;margin-top:2px;">Edge Function</div>
+        </div>
+        <div style="text-align:center;font-size:18px;color:#7c3aed;">→</div>
+        <div style="text-align:center;padding:12px;background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.2);border-radius:8px;">
+          <div style="font-size:16px;margin-bottom:4px;">💳</div>
+          <div style="font-size:10px;font-weight:700;color:#06b6d4;">Cashfree UI</div>
+          <div style="font-size:9px;color:#94a3b8;margin-top:2px;">Drop-in SDK</div>
+        </div>
+        <div style="text-align:center;font-size:18px;color:#7c3aed;">→</div>
+        <div style="text-align:center;padding:12px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:8px;">
+          <div style="font-size:16px;margin-bottom:4px;">🔄</div>
+          <div style="font-size:10px;font-weight:700;color:#f59e0b;">Verify Order</div>
+          <div style="font-size:9px;color:#94a3b8;margin-top:2px;">6 retries / 2.5s</div>
+        </div>
+        <div style="text-align:center;padding:12px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:8px;">
+          <div style="font-size:16px;margin-bottom:4px;">💰</div>
+          <div style="font-size:10px;font-weight:700;color:#10b981;">Commission Split</div>
+          <div style="font-size:9px;color:#94a3b8;margin-top:2px;">80% Creator / 20% Platform</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════════════════════════════════ DASHBOARD ══════════════════════════════════════════ -->
+<section id="dashboard">
+  <div class="flow-container">
+    <div class="section-label">📊 Creator Dashboard</div>
+    <h2 style="margin-bottom:16px;">Creator <span class="gradient-text">Dashboard & Wallet</span></h2>
+    <p style="margin-bottom:40px;max-width:520px;">Track your earnings, manage withdrawals, and monitor your storefront — all from a single powerful dashboard.</p>
+
+    <!-- Full dashboard mockup -->
+    <div class="mockup-frame">
+      <div class="mockup-bar">
+        <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+        <div class="url-bar">🔒 sellar.app/creator/dashboard</div>
+      </div>
+      <div style="background:#0a0a0f;">
+        <div class="dashboard-grid">
+          <!-- Sidebar -->
+          <div class="dash-sidebar">
+            <div style="padding:16px 20px;margin-bottom:8px;">
+              <div style="font-size:12px;color:#94a3b8;font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px;">Creator Panel</div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#06b6d4);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;">A</div>
+                <div><div style="font-size:12px;font-weight:700;">Ayush Anand</div><div style="font-size:10px;color:#94a3b8;">@ayush</div></div>
+              </div>
+            </div>
+            <div class="dash-sidebar-item active"><span>📊</span> Dashboard</div>
+            <div class="dash-sidebar-item"><span>📦</span> My Products</div>
+            <div class="dash-sidebar-item"><span>💰</span> Wallet</div>
+            <div class="dash-sidebar-item"><span>⚙️</span> Settings</div>
+            <div class="dash-sidebar-item" style="margin-top:8px;"><span>🏪</span> View Storefront</div>
+            <div class="dash-sidebar-item"><span>📋</span> Copy Link</div>
+          </div>
+          <!-- Main content -->
+          <div class="dash-main">
+            <div style="font-weight:800;font-size:16px;margin-bottom:16px;">Overview</div>
+            <!-- KPI cards -->
+            <div class="stat-cards">
+              <div class="stat-card">
+                <div class="stat-label">Available Balance</div>
+                <div class="stat-value" style="color:#10b981;">₹28,450</div>
+                <div class="stat-change">↑ Ready to withdraw</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">Monthly Earnings</div>
+                <div class="stat-value">₹12,800</div>
+                <div class="stat-change">↑ +23% vs last month</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">Lifetime Earnings</div>
+                <div class="stat-value">₹1,24,600</div>
+                <div class="stat-change" style="color:#94a3b8;">Total since joining</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">Pending Withdrawals</div>
+                <div class="stat-value" style="color:#f59e0b;">₹5,000</div>
+                <div class="stat-change" style="color:#f59e0b;">Processing</div>
+              </div>
+            </div>
+            <!-- Chart -->
+            <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:16px;margin-bottom:16px;">
+              <div style="font-size:12px;font-weight:700;margin-bottom:12px;color:#94a3b8;">Earnings — Last 7 Months</div>
+              <div class="chart">
+                <div class="bar" style="height:40%;"></div>
+                <div class="bar" style="height:55%;"></div>
+                <div class="bar" style="height:45%;"></div>
+                <div class="bar" style="height:70%;"></div>
+                <div class="bar" style="height:60%;"></div>
+                <div class="bar" style="height:85%;"></div>
+                <div class="bar" style="height:100%;opacity:1;"></div>
+              </div>
+              <div style="display:flex;justify-content:space-between;margin-top:6px;">
+                <span style="font-size:10px;color:#94a3b8;">Oct</span><span style="font-size:10px;color:#94a3b8;">Nov</span><span style="font-size:10px;color:#94a3b8;">Dec</span><span style="font-size:10px;color:#94a3b8;">Jan</span><span style="font-size:10px;color:#94a3b8;">Feb</span><span style="font-size:10px;color:#94a3b8;">Mar</span><span style="font-size:10px;color:#a78bfa;font-weight:700;">Apr</span>
+              </div>
+            </div>
+            <!-- Recent transactions -->
+            <div style="font-size:12px;font-weight:700;margin-bottom:8px;color:#94a3b8;">Recent Transactions</div>
+            <table>
+              <tr><th>Product</th><th>Buyer</th><th>Amount</th><th>Status</th><th>Date</th></tr>
+              <tr><td>Stock Market Course</td><td>Rahul M.</td><td style="color:#10b981;font-weight:700;">₹799</td><td><span class="badge-green">Completed</span></td><td style="color:#94a3b8;font-size:12px;">Apr 14</td></tr>
+              <tr><td>SaaS Starter Template</td><td>Sneha K.</td><td style="color:#10b981;font-weight:700;">₹959</td><td><span class="badge-green">Completed</span></td><td style="color:#94a3b8;font-size:12px;">Apr 13</td></tr>
+              <tr><td>Options Webinar</td><td>Vikram S.</td><td style="color:#f59e0b;font-weight:700;">₹639</td><td><span class="badge-amber">Pending</span></td><td style="color:#94a3b8;font-size:12px;">Apr 12</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Wallet section -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:24px;">
+      <div>
+        <div style="font-size:12px;color:#94a3b8;margin-bottom:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;">Creator Wallet (/creator/wallet)</div>
+        <div class="wallet-card">
+          <div style="font-size:12px;color:rgba(255,255,255,.5);margin-bottom:4px;">Available Balance</div>
+          <div class="wallet-balance gradient-text">₹28,450</div>
+          <div style="font-size:13px;color:rgba(255,255,255,.6);">Ready to withdraw · INR</div>
+          <div class="wallet-row">
+            <div class="wallet-stat"><h4>Monthly Earnings</h4><p>₹12,800</p></div>
+            <div class="wallet-stat"><h4>Lifetime</h4><p>₹1,24,600</p></div>
+            <div class="wallet-stat"><h4>Commission</h4><p>20%</p></div>
+          </div>
+        </div>
+        <!-- Withdrawal methods -->
+        <div style="margin-top:12px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;">
+          <div style="font-size:12px;font-weight:700;margin-bottom:10px;">Withdrawal Methods</div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <div style="display:flex;align-items:center;gap:10px;padding:8px;background:rgba(255,255,255,.04);border-radius:8px;font-size:12px;"><span>📱</span> UPI Transfer</div>
+            <div style="display:flex;align-items:center;gap:10px;padding:8px;background:rgba(255,255,255,.04);border-radius:8px;font-size:12px;"><span>🏦</span> IMPS / NEFT</div>
+            <div style="display:flex;align-items:center;gap:10px;padding:8px;background:rgba(255,255,255,.04);border-radius:8px;font-size:12px;"><span>💳</span> Bank Transfer</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Settings preview -->
+      <div>
+        <div style="font-size:12px;color:#94a3b8;margin-bottom:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;">Profile Settings (/creator/settings)</div>
+        <div class="mockup-frame">
+          <div style="padding:20px;background:#0d0d14;">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+              <div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#06b6d4);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:900;position:relative;">
+                A
+                <div style="position:absolute;bottom:-2px;right:-2px;width:18px;height:18px;background:#10b981;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;border:2px solid #0d0d14;">📷</div>
+              </div>
+              <div>
+                <div style="font-size:14px;font-weight:700;">Ayush Anand</div>
+                <div style="font-size:11px;color:#94a3b8;">@ayush · Upload Avatar</div>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <div><div style="font-size:11px;color:#94a3b8;margin-bottom:4px;">Bio</div><div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:10px 14px;font-size:12px;color:#94a3b8;">Finance educator & tech creator from India...</div></div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <div><div style="font-size:11px;color:#94a3b8;margin-bottom:4px;">📷 Instagram</div><div style="background:rgba(255,255,255,.06);border-radius:8px;padding:8px 12px;font-size:12px;color:#94a3b8;">@ayush.finance</div></div>
+                <div><div style="font-size:11px;color:#94a3b8;margin-bottom:4px;">🐦 Twitter/X</div><div style="background:rgba(255,255,255,.06);border-radius:8px;padding:8px 12px;font-size:12px;color:#94a3b8;">@ayushanand</div></div>
+                <div><div style="font-size:11px;color:#94a3b8;margin-bottom:4px;">💼 LinkedIn</div><div style="background:rgba(255,255,255,.06);border-radius:8px;padding:8px 12px;font-size:12px;color:#94a3b8;">linkedin.com/in/ayush</div></div>
+                <div><div style="font-size:11px;color:#94a3b8;margin-bottom:4px;">🌐 Website</div><div style="background:rgba(255,255,255,.06);border-radius:8px;padding:8px 12px;font-size:12px;color:#94a3b8;">ayush.in</div></div>
+              </div>
+              <div style="background:linear-gradient(135deg,#7c3aed,#06b6d4);border-radius:8px;padding:10px;text-align:center;font-size:12px;font-weight:700;cursor:pointer;">Save Changes</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════════════════════════════════ ADMIN ══════════════════════════════════════════ -->
+<section id="admin" style="background:radial-gradient(ellipse 50% 50% at 10% 60%, rgba(245,158,11,.08) 0%, transparent 55%);">
+  <div class="flow-container">
+    <div class="section-label">🛡️ Admin Portal</div>
+    <h2 style="margin-bottom:16px;">Full <span class="gradient-text">Platform Visibility</span></h2>
+    <p style="margin-bottom:40px;max-width:520px;">8-tab admin portal gives complete operational control — from creator management to commission configuration and withdrawal processing.</p>
+
+    <div class="mockup-frame">
+      <div class="mockup-bar">
+        <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+        <div class="url-bar">🔒 sellar.app/admin/portal</div>
+      </div>
+      <div style="padding:24px;background:#0a0a0f;">
+        <div style="font-weight:800;font-size:16px;margin-bottom:16px;">Admin Portal</div>
+        <div class="admin-tabs">
+          <div class="admin-tab active">📊 Overview</div>
+          <div class="admin-tab">👥 Creators</div>
+          <div class="admin-tab">📦 Products</div>
+          <div class="admin-tab">👤 Users</div>
+          <div class="admin-tab">💸 Withdrawals</div>
+          <div class="admin-tab">💹 Commission</div>
+          <div class="admin-tab">📈 Traffic</div>
+          <div class="admin-tab">🗺️ Demographics</div>
+        </div>
+
+        <!-- Overview stats -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;">
+          <div class="stat-card"><div class="stat-label">Platform Revenue</div><div class="stat-value">₹2,48,000</div><div class="stat-change">↑ +18% this month</div></div>
+          <div class="stat-card"><div class="stat-label">Active Creators</div><div class="stat-value">124</div><div class="stat-change" style="color:#94a3b8;">12 featured</div></div>
+          <div class="stat-card"><div class="stat-label">Total Purchases</div><div class="stat-value">1,847</div><div class="stat-change">↑ +34% this month</div></div>
+          <div class="stat-card"><div class="stat-label">Pending Withdrawals</div><div class="stat-value" style="color:#f59e0b;">₹48,200</div><div class="stat-change" style="color:#f59e0b;">8 requests</div></div>
+        </div>
+
+        <!-- Creator table -->
+        <div style="font-size:12px;font-weight:700;color:#94a3b8;margin-bottom:10px;">Top Creators</div>
+        <table>
+          <tr><th>Creator</th><th>Handle</th><th>Products</th><th>Commission</th><th>Featured</th><th>Actions</th></tr>
+          <tr>
+            <td><div style="display:flex;align-items:center;gap:8px;"><div style="width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#06b6d4);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;">A</div>Ayush Anand</div></td>
+            <td style="color:#a78bfa;">@ayush</td>
+            <td>6 products</td>
+            <td><span class="badge-purple">20%</span></td>
+            <td><span class="badge-green">⭐ Yes</span></td>
+            <td><div style="display:flex;gap:6px;"><div style="background:rgba(255,255,255,.06);border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer;">Edit</div><div style="background:rgba(239,68,68,.1);border-radius:4px;padding:3px 8px;font-size:11px;color:#ef4444;cursor:pointer;">Remove</div></div></td>
+          </tr>
+          <tr>
+            <td><div style="display:flex;align-items:center;gap:8px;"><div style="width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#ec4899,#f59e0b);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;">P</div>Priya Sharma</div></td>
+            <td style="color:#a78bfa;">@priya</td>
+            <td>4 products</td>
+            <td><span class="badge-amber">15%</span></td>
+            <td><span class="badge-green">⭐ Yes</span></td>
+            <td><div style="display:flex;gap:6px;"><div style="background:rgba(255,255,255,.06);border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer;">Edit</div><div style="background:rgba(239,68,68,.1);border-radius:4px;padding:3px 8px;font-size:11px;color:#ef4444;cursor:pointer;">Remove</div></div></td>
+          </tr>
+          <tr>
+            <td><div style="display:flex;align-items:center;gap:8px;"><div style="width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#10b981,#06b6d4);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;">R</div>Ravi Mehta</div></td>
+            <td style="color:#a78bfa;">@ravi</td>
+            <td>3 products</td>
+            <td><span class="badge-cyan">18%</span></td>
+            <td><span style="background:rgba(255,255,255,.06);color:#94a3b8;padding:2px 8px;border-radius:4px;font-size:11px;">No</span></td>
+            <td><div style="display:flex;gap:6px;"><div style="background:rgba(255,255,255,.06);border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer;">Edit</div><div style="background:rgba(239,68,68,.1);border-radius:4px;padding:3px 8px;font-size:11px;color:#ef4444;cursor:pointer;">Remove</div></div></td>
+          </tr>
+        </table>
+
+        <!-- Withdrawals preview -->
+        <div style="margin-top:20px;">
+          <div style="font-size:12px;font-weight:700;color:#94a3b8;margin-bottom:10px;">Pending Withdrawal Requests</div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div style="background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:10px;padding:12px;display:flex;align-items:center;justify-content:space-between;">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <div style="width:8px;height:8px;border-radius:50%;background:#f59e0b;"></div>
+                <div><div style="font-size:13px;font-weight:600;">Ayush Anand</div><div style="font-size:11px;color:#94a3b8;">UPI · Apr 13 · @ayush</div></div>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <div style="font-size:15px;font-weight:800;">₹15,000</div>
+                <div style="background:rgba(16,185,129,.15);border-radius:6px;padding:5px 12px;font-size:11px;font-weight:700;color:#10b981;cursor:pointer;">✓ Approve</div>
+                <div style="background:rgba(239,68,68,.1);border-radius:6px;padding:5px 12px;font-size:11px;font-weight:700;color:#ef4444;cursor:pointer;">✗ Reject</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════════════════════════════════ SECURITY ══════════════════════════════════════════ -->
+<section id="security" style="text-align:center;align-items:center;">
+  <div style="max-width:800px;width:100%;">
+    <div class="section-label" style="margin:0 auto 24px;">🔐 Security & Architecture</div>
+    <h2 style="margin-bottom:16px;">Built <span class="gradient-text">Secure by Default</span></h2>
+    <p style="margin-bottom:48px;max-width:520px;margin-left:auto;margin-right:auto;">Security is enforced at the database layer — not just the client. Every API call, every row, every wallet transaction is protected.</p>
+    <div class="security-grid" style="text-align:left;">
+      <div class="sec-card">
+        <div class="sec-icon">🛡️</div>
+        <div><h4>Row-Level Security (RLS)</h4><p>PostgreSQL RLS policies on every table. Creators can only read/write their own products, wallets, and transactions — regardless of client state.</p></div>
+      </div>
+      <div class="sec-card">
+        <div class="sec-icon">⚡</div>
+        <div><h4>Atomic Commission Split</h4><p>Payment settlement is a single PostgreSQL stored procedure. Commission deduction and creator wallet credit happen atomically — no race conditions possible.</p></div>
+      </div>
+      <div class="sec-card">
+        <div class="sec-icon">🔑</div>
+        <div><h4>JWT Authentication</h4><p>Supabase Auth issues signed JWTs for every session. Edge Functions verify tokens server-side before processing any payment operations.</p></div>
+      </div>
+      <div class="sec-card">
+        <div class="sec-icon">🔗</div>
+        <div><h4>Secure Join Tokens</h4><p>Webinar join URLs are generated server-side via Edge Functions. Only verified purchasers within the join window receive valid tokens.</p></div>
+      </div>
+      <div class="sec-card">
+        <div class="sec-icon">📡</div>
+        <div><h4>Webhook Verification</h4><p>Cashfree webhook signature validation prevents spoofed payment notifications. Every webhook is cryptographically verified before processing.</p></div>
+      </div>
+      <div class="sec-card">
+        <div class="sec-icon">🏦</div>
+        <div><h4>RBI-Compliant Payments</h4><p>All payments flow through Cashfree — an RBI-licensed payment aggregator. UPI, net banking, and card payments are fully compliant.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════════════════════════════════ TECH STACK ══════════════════════════════════════════ -->
+<section id="tech">
+  <div style="max-width:1280px;margin:0 auto;width:100%;">
+    <div class="section-label">⚙️ Technology</div>
+    <h2 style="margin-bottom:16px;">Modern <span class="gradient-text">Cloud-Native Stack</span></h2>
+    <p style="margin-bottom:48px;max-width:520px;">Built on proven, production-grade technologies. No custom backend required — Supabase handles auth, database, storage, and serverless functions.</p>
+    <div class="tech-grid">
+      <div class="tech-card">
+        <div class="tech-logo">⚛️</div>
+        <div class="tech-name">React 18</div>
+        <div class="tech-role">Frontend SPA</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-logo" style="font-size:20px;font-weight:900;color:#7c3aed;">TS</div>
+        <div class="tech-name">TypeScript</div>
+        <div class="tech-role">Type Safety</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-logo">⚡</div>
+        <div class="tech-name">Vite + SWC</div>
+        <div class="tech-role">Build Tool</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-logo" style="font-size:20px;font-weight:900;color:#06b6d4;">TW</div>
+        <div class="tech-name">Tailwind CSS</div>
+        <div class="tech-role">Styling</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-logo">🎯</div>
+        <div class="tech-name">Radix UI</div>
+        <div class="tech-role">Components</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-logo">🐘</div>
+        <div class="tech-name">Supabase</div>
+        <div class="tech-role">Backend + Auth + DB</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-logo">🔒</div>
+        <div class="tech-name">PostgreSQL 15</div>
+        <div class="tech-role">Database + RLS</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-logo">🦕</div>
+        <div class="tech-name">Deno</div>
+        <div class="tech-role">Edge Functions</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-logo">💳</div>
+        <div class="tech-name">Cashfree</div>
+        <div class="tech-role">Payments</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-logo">▲</div>
+        <div class="tech-name">Vercel</div>
+        <div class="tech-role">Deployment</div>
+      </div>
+    </div>
+
+    <!-- Architecture diagram -->
+    <div style="margin-top:48px;background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:16px;padding:32px;">
+      <div style="font-size:14px;font-weight:700;margin-bottom:24px;text-align:center;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;">System Architecture</div>
+      <div style="display:flex;justify-content:center;align-items:center;gap:0;flex-wrap:wrap;gap:16px;">
+        <!-- Client -->
+        <div style="background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.3);border-radius:12px;padding:20px 24px;text-align:center;min-width:140px;">
+          <div style="font-size:24px;margin-bottom:8px;">🌐</div>
+          <div style="font-size:13px;font-weight:700;">Browser (SPA)</div>
+          <div style="font-size:11px;color:#94a3b8;margin-top:4px;">React 18 + Vite<br/>Tailwind + Radix UI</div>
+        </div>
+        <div style="font-size:24px;color:#7c3aed;font-weight:900;">⇄</div>
+        <!-- Vercel -->
+        <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:20px 24px;text-align:center;min-width:140px;">
+          <div style="font-size:24px;margin-bottom:8px;">▲</div>
+          <div style="font-size:13px;font-weight:700;">Vercel CDN</div>
+          <div style="font-size:11px;color:#94a3b8;margin-top:4px;">Static deploy<br/>Global edge</div>
+        </div>
+        <div style="font-size:24px;color:#7c3aed;font-weight:900;">⇄</div>
+        <!-- Supabase -->
+        <div style="background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.25);border-radius:12px;padding:20px 24px;text-align:center;min-width:160px;">
+          <div style="font-size:24px;margin-bottom:8px;">🐘</div>
+          <div style="font-size:13px;font-weight:700;">Supabase</div>
+          <div style="font-size:11px;color:#94a3b8;margin-top:4px;">Auth · PostgreSQL<br/>Storage · Edge Fns</div>
+        </div>
+        <div style="font-size:24px;color:#7c3aed;font-weight:900;">⇄</div>
+        <!-- Cashfree -->
+        <div style="background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.25);border-radius:12px;padding:20px 24px;text-align:center;min-width:140px;">
+          <div style="font-size:24px;margin-bottom:8px;">💳</div>
+          <div style="font-size:13px;font-weight:700;">Cashfree</div>
+          <div style="font-size:11px;color:#94a3b8;margin-top:4px;">Payment gateway<br/>UPI · Cards · Banks</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════════════════════════════════ CTA ══════════════════════════════════════════ -->
+<section id="cta">
+  <div class="cta-inner">
+    <div class="section-label" style="margin:0 auto 24px;">🚀 Ready to Start?</div>
+    <h2>Launch Your<br/><span class="gradient-text">Creator Storefront Today</span></h2>
+    <p>Join hundreds of Indian creators selling digital products and webinars. Your storefront is ready in under 2 minutes — no technical skills required.</p>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+      <a href="#join" class="btn-primary" style="font-size:16px;padding:16px 36px;">Become a Creator →</a>
+      <a href="#purchase" class="btn-outline" style="font-size:16px;padding:16px 36px;">Browse Products</a>
+    </div>
+    <div style="margin-top:40px;display:flex;gap:32px;justify-content:center;flex-wrap:wrap;">
+      <div style="text-align:center;"><div style="font-size:28px;font-weight:900;gradient-text">₹0</div><div style="font-size:13px;color:#94a3b8;margin-top:4px;">Setup cost</div></div>
+      <div style="text-align:center;"><div style="font-size:28px;font-weight:900;">80%</div><div style="font-size:13px;color:#94a3b8;margin-top:4px;">Creator keeps</div></div>
+      <div style="text-align:center;"><div style="font-size:28px;font-weight:900;">2 min</div><div style="font-size:13px;color:#94a3b8;margin-top:4px;">To launch</div></div>
+      <div style="text-align:center;"><div style="font-size:28px;font-weight:900;">4</div><div style="font-size:13px;color:#94a3b8;margin-top:4px;">Product types</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════ FOOTER ══════════════════════════════════════════ -->
+<footer>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <div class="logo-icon" style="width:28px;height:28px;font-size:13px;">S</div>
+    <span style="font-weight:700;color:var(--text);">Sellar</span>
+    <span>— Creator Monetization Platform</span>
+  </div>
+  <div style="display:flex;gap:24px;">
+    <span>Built with React + Supabase + Cashfree</span>
+    <span>·</span>
+    <span>© 2026 Ayush Anand</span>
+    <span>·</span>
+    <span>Made in India 🇮🇳</span>
+  </div>
+</footer>
+
+</body>
+</html>
